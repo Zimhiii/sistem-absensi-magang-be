@@ -1,0 +1,116 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+	directUrl = env("DIRECT_URL")
+}
+
+enum Role {
+  ADMIN
+  PEMBIMBING
+  SATPAM
+  PESERTA_MAGANG
+}
+
+enum StatusKehadiran {
+  HADIR
+  IZIN
+  SAKIT
+  ALPHA
+}
+
+model User {
+  id              String      @id @default(uuid())
+  nama            String
+  email           String      @unique
+  password        String?
+  role            Role
+  fotoProfil      String?
+  nomorTelepon    String?
+  asalInstansi    String?
+  googleId        String?
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  pesertaMagang   PesertaMagang?
+  pembimbing      Pembimbing?
+  satpam          Satpam?
+}
+
+model PesertaMagang {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id])
+  pembimbingId    String?
+  pembimbing      Pembimbing? @relation(fields: [pembimbingId], references: [id])
+  qrCode          String      @unique
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+	izinSatpam      IzinSatpam[]
+  kehadiran       Kehadiran[]
+}
+
+model Pembimbing {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  pesertaMagang   PesertaMagang[]
+  izinSatpam      IzinSatpam[]
+}
+
+model Satpam {
+  id              String      @id @default(uuid())
+  userId          String      @unique
+  user            User        @relation(fields: [userId], references: [id])
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+
+  izinSatpam      IzinSatpam[]
+}
+
+model IzinSatpam {
+  id              String      @id @default(uuid())
+  pembimbingId    String
+  pembimbing      Pembimbing  @relation(fields: [pembimbingId], references: [id])
+  satpamId        String
+  satpam          Satpam      @relation(fields: [satpamId], references: [id])
+  pesertaMagangId String
+  pesertaMagang   PesertaMagang @relation(fields: [pesertaMagangId], references: [id])
+  diizinkan       Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model Kehadiran {
+  id              String      @id @default(uuid())
+  pesertaMagangId String
+  pesertaMagang   PesertaMagang @relation(fields: [pesertaMagangId], references: [id])
+  status          StatusKehadiran
+  waktuMasuk      DateTime?
+  waktuPulang     DateTime?
+  qrCodeMasuk     String?
+  qrCodePulang    String?
+  validatedBy     String? // ID admin/pembimbing/satpam yang memvalidasi
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model QRCode {
+  id              String      @id @default(uuid())
+  code            String      @unique
+  creatorId       String      // ID admin/pembimbing/satpam yang membuat
+  creatorRole     Role
+  expiresAt       DateTime
+  forRole         Role?       // Role yang bisa menggunakan QR ini (null untuk semua)
+  pesertaMagangId String?     // Jika khusus untuk peserta tertentu
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}

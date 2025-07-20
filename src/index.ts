@@ -7,6 +7,7 @@ import multer from "multer";
 import authController from "./modules/auth/auth.controller";
 import { authenticate, authorize } from "./middleware/auth";
 import userController from "./modules/user/user.controller";
+import kehadiranController from "./modules/kehadiran/kehadiran.controller";
 // import authController from "./modules/auth/auth.controller";
 // Create a new express application instance
 const upload = multer({ storage: multer.memoryStorage() });
@@ -66,6 +67,47 @@ app.delete(
   authorize(["ADMIN"]),
   userController.deleteUser
 );
+
+//Kehadiran Route
+app.post(
+  "/kehadiran.record",
+  authenticate,
+  authorize(["PESERTA_MAGANG"]),
+  kehadiranController.recordAttendance
+);
+
+app.post(
+  "/kehadiran/scan",
+  authenticate,
+  authorize(["ADMIN", "PEMBIMBING", "SATPAM"]),
+  kehadiranController.scanAttendance
+);
+
+app.get(
+  "/kehadiran/history",
+  authenticate,
+  kehadiranController.getAttendanceHistory
+);
+
+app.post(
+  "/kehadiran/izin",
+  authenticate,
+  authorize(["PESERTA_MAGANG"]),
+  kehadiranController.requestIzin
+);
+app.post(
+  "/kehadiran/validate-izin",
+  authenticate,
+  authorize(["ADMIN", "PEMBIMBING"]),
+  kehadiranController.validateIzin
+);
+app.get(
+  "/kehadiran/export",
+  authenticate,
+  authorize(["ADMIN", "PEMBIMBING"]),
+  kehadiranController.exportAttendance
+);
+
 // Start the Express server
 app.listen(port, () => {
   console.log(`The server is running at http://localhost:${port}`);

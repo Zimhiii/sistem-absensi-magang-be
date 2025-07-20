@@ -36,3 +36,24 @@ export interface CreateUserInput {
   role: Role;
   nomorTelepon?: string;
 }
+
+export interface RecordAttendanceInput {
+  qrCode: string;
+  type: "MASUK" | "PULANG";
+}
+
+export interface ScanAttendanceInput {
+  qrCode: string;
+  type: "MASUK" | "PULANG";
+}
+
+export interface RequestIzinInput {
+  alasan: string;
+  tanggal: string;
+  jenis: "IZIN" | "SAKIT";
+}
+
+export interface ValidateIzinInput {
+  izinId: string;
+  status: "APPROVED" | "REJECTED";
+}

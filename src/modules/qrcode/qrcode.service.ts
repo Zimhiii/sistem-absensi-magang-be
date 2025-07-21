@@ -1,4 +1,4 @@
-import { $Enums, Role } from "@prisma/client";
+// import { Role } from "@prisma/client";
 import prisma from "../../config/prisma";
 import { generateQRCodeByData } from "../../utils/qrGenerator";
 
@@ -6,7 +6,7 @@ class QRCodeService {
   async generateQRCode(
     userId: string,
     expiresInMinutes: number,
-    forRole?: Role,
+    forRole?: "ADMIN" | "PEMBIMBING" | "SATPAM" | "PESERTA_MAGANG",
     pesertaMagangId?: string
   ) {
     const user = await prisma.user.findUnique({
@@ -57,7 +57,12 @@ class QRCodeService {
         creatorId: userId,
         creatorRole: user.role,
         expiresAt,
-        forRole: forRole as Role | undefined,
+        forRole: forRole as
+          | "ADMIN"
+          | "PEMBIMBING"
+          | "SATPAM"
+          | "PESERTA_MAGANG"
+          | undefined,
         pesertaMagangId,
       },
     });

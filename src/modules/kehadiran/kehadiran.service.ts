@@ -1,4 +1,4 @@
-import { $Enums, Kehadiran, PesertaMagang } from "@prisma/client";
+// import { $ } from "@prisma/client";
 import prisma from "../../config/prisma";
 import { generateExcel } from "../../utils/helpers";
 
@@ -435,7 +435,7 @@ class kehadiranService {
       (k: {
         id: string;
         pesertaMagangId: string;
-        status: $Enums.StatusKehadiran | "HADIR" | "IZIN" | "SAKIT" | "ALPHA";
+        status: "HADIR" | "IZIN" | "SAKIT" | "ALPHA";
         waktuMasuk: Date | null;
         waktuPulang: Date | null;
         qrCodeMasuk: string | null;

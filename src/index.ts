@@ -8,6 +8,7 @@ import authController from "./modules/auth/auth.controller";
 import { authenticate, authorize } from "./middleware/auth";
 import userController from "./modules/user/user.controller";
 import kehadiranController from "./modules/kehadiran/kehadiran.controller";
+import qrcodeController from "./modules/qrcode/qrcode.controller";
 // import authController from "./modules/auth/auth.controller";
 // Create a new express application instance
 const upload = multer({ storage: multer.memoryStorage() });
@@ -106,6 +107,26 @@ app.get(
   authenticate,
   authorize(["ADMIN", "PEMBIMBING"]),
   kehadiranController.exportAttendance
+);
+
+//QR Code Routes
+app.post(
+  "/qrcode/generate",
+  authenticate,
+  authorize(["ADMIN", "PEMBIMBING", "SATPAM"]),
+  qrcodeController.generateQRCode
+);
+app.get(
+  "/qrcode/me",
+  authenticate,
+  authorize(["PESERTA_MAGANG"]),
+  qrcodeController.getMyQRCode
+);
+app.get(
+  "/qrcode/generated",
+  authenticate,
+  authorize(["ADMIN", "PEMBIMBING", "SATPAM"]),
+  qrcodeController.getGeneratedQRCodes
 );
 
 // Start the Express server

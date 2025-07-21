@@ -5,7 +5,8 @@
   "main": "src/index.ts",
   "scripts": {
     "start": "npx tsx --env-file=.env --watch  src/index.ts",
-    "dev": "npx tsx --env-file=.env --watch  src/index.ts"
+    "dev": "npx tsx --env-file=.env --watch  src/index.ts",
+    "build": "tsc --build"
   },
   "keywords": [],
   "author": "",

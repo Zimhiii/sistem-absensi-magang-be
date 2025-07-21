@@ -1,3 +1,4 @@
+import { Kehadiran, PesertaMagang } from "@prisma/client";
 import prisma from "../../config/prisma";
 import { generateExcel } from "../../utils/helpers";
 
@@ -222,7 +223,7 @@ class kehadiranService {
       const pesertaMagang = await prisma.pesertaMagang.findMany({
         where: { pembimbingId: user.pembimbing.id },
       });
-      pesertaMagangId = pesertaMagang.map((pm) => pm.id);
+      pesertaMagangId = pesertaMagang.map((pm: PesertaMagang) => pm.id);
       whereClause.pesertaMagangId = { in: pesertaMagangId };
     } else if (user.role === "ADMIN") {
       //tidak perlu filter peserta magang id
@@ -410,7 +411,7 @@ class kehadiranService {
     if (!pesertaMagang) throw new Error("Peserta magang tidak ditemukan");
 
     // Format data untuk Excel
-    const data = kehadiran.map((k) => ({
+    const data = kehadiran.map((k: Kehadiran) => ({
       Tanggal: k.createdAt.toISOString().split("T")[0],
       Nama: pesertaMagang.user.nama,
       Pembimbing: pesertaMagang.pembimbing?.user.nama || "-",

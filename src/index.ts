@@ -130,34 +130,34 @@ app.get(
   qrcodeController.getGeneratedQRCodes
 );
 
-// Start the Express server
-// app.listen(port, () => {
-//   console.log(`The server is running at http://localhost:${port}`);
-// });
 const PORT = process.env.PORT || 3000;
-async function startServer() {
-  try {
-    await prisma.$connect();
-    console.log("Database connected");
-
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("Failed to connect to database", error);
-    process.exit(1);
-  }
-}
-
-startServer();
-
-// Handle shutdown
-process.on("SIGINT", async () => {
-  await prisma.$disconnect();
-  process.exit(0);
+// Start the Express server
+app.listen(port, () => {
+  console.log(`The server is running at http://localhost:${PORT}`);
 });
+// async function startServer() {
+//   try {
+//     await prisma.$connect();
+//     console.log("Database connected");
 
-process.on("SIGTERM", async () => {
-  await prisma.$disconnect();
-  process.exit(0);
-});
+//     app.listen(PORT, () => {
+//       console.log(`Server running on port ${PORT}`);
+//     });
+//   } catch (error) {
+//     console.error("Failed to connect to database", error);
+//     process.exit(1);
+//   }
+// }
+
+// startServer();
+
+// // Handle shutdown
+// process.on("SIGINT", async () => {
+//   await prisma.$disconnect();
+//   process.exit(0);
+// });
+
+// process.on("SIGTERM", async () => {
+//   await prisma.$disconnect();
+//   process.exit(0);
+// });

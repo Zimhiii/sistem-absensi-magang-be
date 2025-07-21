@@ -79,3 +79,7 @@ app.listen(port, () => {
 //   await prisma.$disconnect();
 //   process.exit(0);
 // });
+// Export handler khusus untuk Vercel
+exports.default = (req, res) => {
+    app(req, res);
+};

@@ -1,8 +1,8 @@
 // import { Role } from "../../../generated/prisma";
-import prisma from "../../config/prisma";
+import prisma from "../../config/prisma.js";
 import { Prisma } from "@prisma/client";
-import supabase from "../../config/supabase";
-import { UpdateProfileInput } from "../../utils/types";
+import supabase from "../../config/supabase.js";
+import { UpdateProfileInput } from "../../utils/types.js";
 
 class UserService {
   async getProfile(userId: string) {

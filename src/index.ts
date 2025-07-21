@@ -4,12 +4,12 @@ import cors from "cors";
 import morgan from "morgan";
 import bodyParser from "body-parser";
 import multer from "multer";
-import authController from "./modules/auth/auth.controller";
-import { authenticate, authorize } from "./middleware/auth";
-import userController from "./modules/user/user.controller";
-import kehadiranController from "./modules/kehadiran/kehadiran.controller";
-import qrcodeController from "./modules/qrcode/qrcode.controller";
-import prisma from "./config/prisma";
+import authController from "./modules/auth/auth.controller.js";
+import { authenticate, authorize } from "./middleware/auth.js";
+import userController from "./modules/user/user.controller.js";
+import kehadiranController from "./modules/kehadiran/kehadiran.controller.js";
+import qrcodeController from "./modules/qrcode/qrcode.controller.js";
+import prisma from "./config/prisma.js";
 // import authController from "./modules/auth/auth.controller";
 // Create a new express application instance
 const upload = multer({ storage: multer.memoryStorage() });

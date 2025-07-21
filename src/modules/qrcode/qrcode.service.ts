@@ -1,6 +1,6 @@
 // import { Role } from "@prisma/client";
-import prisma from "../../config/prisma";
-import { generateQRCodeByData } from "../../utils/qrGenerator";
+import prisma from "../../config/prisma.js";
+import { generateQRCodeByData } from "../../utils/qrGenerator.js";
 
 class QRCodeService {
   async generateQRCode(

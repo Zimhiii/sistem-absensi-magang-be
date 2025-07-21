@@ -9,6 +9,7 @@ import { authenticate, authorize } from "./middleware/auth.js";
 import userController from "./modules/user/user.controller.js";
 import kehadiranController from "./modules/kehadiran/kehadiran.controller.js";
 import qrcodeController from "./modules/qrcode/qrcode.controller.js";
+import { VercelRequest, VercelResponse } from "@vercel/node";
 import prisma from "./config/prisma.js";
 // import authController from "./modules/auth/auth.controller";
 // Create a new express application instance
@@ -135,6 +136,7 @@ const PORT = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`The server is running at http://localhost:${PORT}`);
 });
+
 // async function startServer() {
 //   try {
 //     await prisma.$connect();
@@ -161,3 +163,8 @@ app.listen(port, () => {
 //   await prisma.$disconnect();
 //   process.exit(0);
 // });
+
+// Export handler khusus untuk Vercel
+export default (req: VercelRequest, res: VercelResponse) => {
+  app(req as any, res as any);
+};

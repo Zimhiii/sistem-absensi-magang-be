@@ -57,3 +57,14 @@ export interface ValidateIzinInput {
   izinId: string;
   status: "APPROVED" | "REJECTED";
 }
+
+export interface VerifyStudentInput {
+  pesertaMagangId: string;
+  status: "ACCEPT" | "REJECT";
+}
+
+export interface GrantSatpamPermissionInput {
+  satpamId: string;
+  pesertaMagangId: string;
+  grant: boolean;
+}

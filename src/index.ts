@@ -9,6 +9,7 @@ import { authenticate, authorize } from "./middleware/auth";
 import userController from "./modules/user/user.controller";
 import kehadiranController from "./modules/kehadiran/kehadiran.controller";
 import qrcodeController from "./modules/qrcode/qrcode.controller";
+import prisma from "./config/prisma";
 // import authController from "./modules/auth/auth.controller";
 // Create a new express application instance
 const upload = multer({ storage: multer.memoryStorage() });
@@ -130,6 +131,33 @@ app.get(
 );
 
 // Start the Express server
-app.listen(port, () => {
-  console.log(`The server is running at http://localhost:${port}`);
+// app.listen(port, () => {
+//   console.log(`The server is running at http://localhost:${port}`);
+// });
+const PORT = process.env.PORT || 3000;
+async function startServer() {
+  try {
+    await prisma.$connect();
+    console.log("Database connected");
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to connect to database", error);
+    process.exit(1);
+  }
+}
+
+startServer();
+
+// Handle shutdown
+process.on("SIGINT", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
+
+process.on("SIGTERM", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
 });

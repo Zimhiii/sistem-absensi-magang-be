@@ -1,4 +1,4 @@
-import { Kehadiran, PesertaMagang } from "@prisma/client";
+import { $Enums, Kehadiran, PesertaMagang } from "@prisma/client";
 import prisma from "../../config/prisma";
 import { generateExcel } from "../../utils/helpers";
 
@@ -223,7 +223,16 @@ class kehadiranService {
       const pesertaMagang = await prisma.pesertaMagang.findMany({
         where: { pembimbingId: user.pembimbing.id },
       });
-      pesertaMagangId = pesertaMagang.map((pm: PesertaMagang) => pm.id);
+      pesertaMagangId = pesertaMagang.map(
+        (pm: {
+          id: string;
+          createdAt: Date;
+          updatedAt: Date;
+          userId: string;
+          pembimbingId: string | null;
+          qrCode: string;
+        }) => pm.id
+      );
       whereClause.pesertaMagangId = { in: pesertaMagangId };
     } else if (user.role === "ADMIN") {
       //tidak perlu filter peserta magang id
@@ -409,16 +418,40 @@ class kehadiranService {
     });
 
     if (!pesertaMagang) throw new Error("Peserta magang tidak ditemukan");
-
+    // {
+    //   id: string;
+    //   pesertaMagangId: string;
+    //   status: $Enums.StatusKehadiran;
+    //   waktuMasuk: Date | null;
+    //   waktuPulang: Date | null;
+    //   qrCodeMasuk: string | null;
+    //   qrCodePulang: string | null;
+    //   validatedBy: string | null;
+    //   createdAt: Date;
+    //   updatedAt: Date;
+    // }
     // Format data untuk Excel
-    const data = kehadiran.map((k: Kehadiran) => ({
-      Tanggal: k.createdAt.toISOString().split("T")[0],
-      Nama: pesertaMagang.user.nama,
-      Pembimbing: pesertaMagang.pembimbing?.user.nama || "-",
-      Status: k.status,
-      "Waktu Masuk": k.waktuMasuk?.toLocaleTimeString() || "-",
-      "Waktu Pulang": k.waktuPulang?.toLocaleTimeString() || "-",
-    }));
+    const data = kehadiran.map(
+      (k: {
+        id: string;
+        pesertaMagangId: string;
+        status: $Enums.StatusKehadiran | "HADIR" | "IZIN" | "SAKIT" | "ALPHA";
+        waktuMasuk: Date | null;
+        waktuPulang: Date | null;
+        qrCodeMasuk: string | null;
+        qrCodePulang: string | null;
+        validatedBy: string | null;
+        createdAt: Date;
+        updatedAt: Date;
+      }) => ({
+        Tanggal: k.createdAt.toISOString().split("T")[0],
+        Nama: pesertaMagang.user.nama,
+        Pembimbing: pesertaMagang.pembimbing?.user.nama || "-",
+        Status: k.status,
+        "Waktu Masuk": k.waktuMasuk?.toLocaleTimeString() || "-",
+        "Waktu Pulang": k.waktuPulang?.toLocaleTimeString() || "-",
+      })
+    );
 
     return generateExcel(data, `Laporan Kehadiran ${pesertaMagang.user.nama}`);
   }

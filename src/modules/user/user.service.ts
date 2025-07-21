@@ -1,5 +1,6 @@
-import { Role } from "../../../generated/prisma";
+// import { Role } from "../../../generated/prisma";
 import prisma from "../../config/prisma";
+import { Prisma } from "@prisma/client";
 import supabase from "../../config/supabase";
 import { UpdateProfileInput } from "../../utils/types";
 
@@ -81,7 +82,9 @@ class UserService {
   }
 
   async getAllusers(role?: string) {
-    const where = role ? { role: role as Role } : {};
+    const where = role
+      ? { role: role as "ADMIN" | "PEMBIMBING" | "SATPAM" | "PESERTA_MAGANG" }
+      : {};
     const users = await prisma.user.findMany({
       where,
       select: {
@@ -101,7 +104,7 @@ class UserService {
   async createUser(data: {
     nama: string;
     email: string;
-    role: Role;
+    role: "ADMIN" | "PEMBIMBING" | "SATPAM" | "PESERTA_MAGANG";
     nomorTelepon?: string;
   }) {
     const { data: supabaseData, error } = await supabase.auth.admin.createUser({

@@ -1,4 +1,4 @@
-import { Role } from "@prisma/client";
+import { $Enums, Role } from "@prisma/client";
 import prisma from "../../config/prisma";
 import { generateQRCodeByData } from "../../utils/qrGenerator";
 
@@ -107,8 +107,20 @@ class QRCodeService {
       },
     });
 
+    type qrCode = {
+      id: string;
+      createdAt: Date;
+      updatedAt: Date;
+      code: string;
+      creatorId: string;
+      creatorRole: "ADMIN" | "PEMBIMBING" | "SATPAM" | "PESERTA_MAGANG";
+      expiresAt: Date;
+      forRole: "ADMIN" | "PEMBIMBING" | "SATPAM" | "PESERTA_MAGANG" | null;
+      pesertaMagangId: string | null;
+    };
+
     const qrCodesWithImages = await Promise.all(
-      qrCodes.map(async (qr) => ({
+      qrCodes.map(async (qr: qrCode) => ({
         id: qr.id,
         code: qr.code,
         qrCodeImage: await generateQRCodeByData(qr.code),

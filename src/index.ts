@@ -11,6 +11,9 @@ import kehadiranController from "./modules/kehadiran/kehadiran.controller.js";
 import qrcodeController from "./modules/qrcode/qrcode.controller.js";
 import { VercelRequest, VercelResponse } from "@vercel/node";
 import prisma from "./config/prisma.js";
+import pembimbingController from "./modules/pembimbing/pembimbing.controller.js";
+import satpamController from "./modules/satpam/satpam.controller.js";
+import { errorHandler } from "./middleware/errorHandler.js";
 // import authController from "./modules/auth/auth.controller";
 // Create a new express application instance
 const upload = multer({ storage: multer.memoryStorage() });
@@ -131,38 +134,68 @@ app.get(
   qrcodeController.getGeneratedQRCodes
 );
 
+//Pembimbing Routes
+app.get(
+  "/pembimbing/students",
+  authenticate,
+  authorize(["PEEMBIMBING"]),
+  pembimbingController.getMyStudents
+);
+app.post(
+  "/pembimbing/verify-students",
+  authenticate,
+  authorize(["PEMBIMBING"]),
+  pembimbingController.verifiyStudent
+);
+app.post(
+  "/pembimbing/grant-permission",
+  authenticate,
+  authorize(["PEMBIMBING"]),
+  pembimbingController.grantSatpamPermission
+);
+
+//Satpam Routes
+app.get(
+  "/satpam/permissions",
+  authenticate,
+  authorize(["SATPAM"]),
+  satpamController.getPermissions
+);
+
+app.use(errorHandler);
+
 const PORT = process.env.PORT || 3000;
 // Start the Express server
-app.listen(port, () => {
-  console.log(`The server is running at http://localhost:${PORT}`);
+// app.listen(port, () => {
+//   console.log(`The server is running at http://localhost:${PORT}`);
+// });
+
+async function startServer() {
+  try {
+    await prisma.$connect();
+    console.log("Database connected");
+
+    app.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
+  } catch (error) {
+    console.error("Failed to connect to database", error);
+    process.exit(1);
+  }
+}
+
+startServer();
+
+// Handle shutdown
+process.on("SIGINT", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
 });
 
-// async function startServer() {
-//   try {
-//     await prisma.$connect();
-//     console.log("Database connected");
-
-//     app.listen(PORT, () => {
-//       console.log(`Server running on port ${PORT}`);
-//     });
-//   } catch (error) {
-//     console.error("Failed to connect to database", error);
-//     process.exit(1);
-//   }
-// }
-
-// startServer();
-
-// // Handle shutdown
-// process.on("SIGINT", async () => {
-//   await prisma.$disconnect();
-//   process.exit(0);
-// });
-
-// process.on("SIGTERM", async () => {
-//   await prisma.$disconnect();
-//   process.exit(0);
-// });
+process.on("SIGTERM", async () => {
+  await prisma.$disconnect();
+  process.exit(0);
+});
 
 // Export handler khusus untuk Vercel
 export default (req: VercelRequest, res: VercelResponse) => {

@@ -1,6 +1,6 @@
 // import { $ } from "@prisma/client";
-import prisma from "../../config/prisma";
-import { generateExcel } from "../../utils/helpers";
+import prisma from "../../config/prisma.js";
+import { generateExcel } from "../../utils/helpers.js";
 
 class kehadiranService {
   async recordAttendance(

@@ -4,17 +4,67 @@ import { generateJWT } from "../../utils/helpers";
 import { SignupInput, UpdateProfileInput } from "../../utils/types";
 
 class AuthService {
-  async login(email: string, password: string) {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
-    if (error) throw new Error("Email atau password salah");
+  // async login(email: string, password: string) {
+  //   try {
+  //     const { data: supabaseUser, error } =
+  //       await supabase.auth.signInWithPassword({
+  //         email,
+  //         password,
+  //       });
+  //     console.log("Login Data:", supabaseUser);
+  //     if (error) throw new Error("Email atau password salah");
+  //   } catch (error) {
+  //     console.error("Login Error:", error);
+  //   }
 
-    const user = await prisma.user.findUnique({
-      where: {
+  //   const user = await prisma.user.findUnique({
+  //     where: {
+  //       email,
+  //     },
+  //     include: {
+  //       pesertaMagang: true,
+  //       pembimbing: true,
+  //       satpam: true,
+  //     },
+  //   });
+
+  //   if (!user) throw new Error("User tidak ditemukan");
+
+  //   return {
+  //     id: user.id,
+  //     nama: user.nama,
+  //     email: user.email,
+  //     role: user.role,
+  //     fotoProfil: user.fotoProfil,
+  //     nomorTelepon: user.nomorTelepon,
+  //     asalInstansi: user.asalInstansi,
+  //     pesertaMagang: user.pesertaMagang,
+  //     pembimbing: user.pembimbing,
+  //     satpam: user.satpam,
+  //   };
+  // }
+
+  async login(email: string, password: string) {
+    // 1. Login ke Supabase terlebih dahulu
+    const { data: supabaseUser, error } =
+      await supabase.auth.signInWithPassword({
         email,
-      },
+        password,
+      });
+    console.log("Login Data:", supabaseUser);
+
+    if (error?.message === "Email not confirmed") {
+      throw new Error("Email belum diverifikasi. Silakan cek email Anda");
+    }
+
+    if (error) {
+      console.error("Supabase Login Error:", error);
+      throw new Error("Email atau password salah");
+    }
+
+    // 2. Jika berhasil, ambil data user dari Prisma
+    const user = await prisma.user.findUnique({
+      where: { email },
       include: {
         pesertaMagang: true,
         pembimbing: true,
@@ -24,47 +74,10 @@ class AuthService {
 
     if (!user) throw new Error("User tidak ditemukan");
 
-    return {
-      id: user.id,
-      nama: user.nama,
-      email: user.email,
-      role: user.role,
-      fotoProfil: user.fotoProfil,
-      nomorTelepon: user.nomorTelepon,
-      asalInstansi: user.asalInstansi,
-      pesertaMagang: user.pesertaMagang,
-      pembimbing: user.pembimbing,
-      satpam: user.satpam,
-    };
-  }
-
-  async singup(data: SignupInput) {
-    const { data: supabaseUser, error } = await supabase.auth.signUp({
-      email: data.email,
-      password: data.password,
-    });
-
-    if (error) throw new Error(error.message);
-
-    const user = await prisma.user.create({
-      data: {
-        nama: data.nama,
-        email: data.email,
-        asalInstansi: data.asalInstansi,
-        nomorTelepon: data.nomorTelepon,
-        role: "PESERTA_MAGANG",
-      },
-    });
-
-    await prisma.pesertaMagang.create({
-      data: {
-        userId: user.id,
-        qrCode: `MAGANG-${user.id}-${Date.now()}`,
-      },
-    });
-
+    // 3. Generate token JWT
     const token = generateJWT(user.id, user.role);
 
+    // 4. Return response yang konsisten
     return {
       token,
       user: {
@@ -72,8 +85,56 @@ class AuthService {
         nama: user.nama,
         email: user.email,
         role: user.role,
+        fotoProfil: user.fotoProfil,
+        nomorTelepon: user.nomorTelepon,
+        asalInstansi: user.asalInstansi,
+        pesertaMagang: user.pesertaMagang,
+        pembimbing: user.pembimbing,
+        satpam: user.satpam,
       },
     };
+  }
+
+  async singup(data: SignupInput) {
+    try {
+      const { data: supabaseUser, error } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
+      });
+      const user = await prisma.user.create({
+        data: {
+          id: supabaseUser.user?.id,
+          nama: data.nama,
+          email: data.email,
+          asalInstansi: data.asalInstansi,
+          nomorTelepon: data.nomorTelepon,
+          role: "PESERTA_MAGANG",
+        },
+      });
+
+      await prisma.pesertaMagang.create({
+        data: {
+          userId: user.id,
+          qrCode: `MAGANG-${user.id}-${Date.now()}`,
+        },
+      });
+
+      const token = generateJWT(user.id, user.role);
+
+      return {
+        token,
+        user: {
+          id: user.id,
+          nama: user.nama,
+          email: user.email,
+          role: user.role,
+        },
+      };
+      console.log("Signup Data:", supabaseUser);
+    } catch (error) {
+      console.error("Signup Error:", error);
+      // if (error) throw new Error(error);
+    }
   }
 
   async loginWithGoogle(token: string) {

@@ -164,19 +164,43 @@ app.get(
 
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 3000;
 // Start the Express server
 // app.listen(port, () => {
 //   console.log(`The server is running at http://localhost:${PORT}`);
 // });
 
+const os = require("os");
+function getWifiIP(): string | null {
+  const interfaces = os.networkInterfaces();
+
+  // Cari interface WiFi (biasanya bernama 'Wi-Fi' di Windows)
+  const wifiInterface = interfaces["Wi-Fi"] || interfaces["wlan0"]; // 'wlan0' untuk Linux
+
+  if (wifiInterface) {
+    for (const iface of wifiInterface) {
+      // Ambil IPv4 yang bukan internal
+      if (iface.family === "IPv4" && !iface.internal) {
+        return iface.address;
+      }
+    }
+  }
+
+  return null; // Jika tidak ditemukan
+}
+
+const wifiIP = getWifiIP();
+console.log("WiFi IP Address:", wifiIP || "Tidak terdeteksi");
+
 async function startServer() {
   try {
+    const port = 3000;
     await prisma.$connect();
     console.log("Database connected");
+    console.log(`- Local:    http://localhost:${port}`);
+    console.log(`- Wifi Network:  http://${wifiIP}:${port}`);
 
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
+    app.listen(port, "0.0.0.0", () => {
+      console.log(`Server running on port ${port}`);
     });
   } catch (error) {
     console.error("Failed to connect to database", error);

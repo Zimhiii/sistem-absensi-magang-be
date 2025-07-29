@@ -53,6 +53,8 @@ class AuthService {
       });
     console.log("Login Data:", supabaseUser);
 
+    console.log("error:", error);
+
     if (error?.message === "Email not confirmed") {
       throw new Error("Email belum diverifikasi. Silakan cek email Anda");
     }
@@ -128,6 +130,9 @@ class AuthService {
           nama: user.nama,
           email: user.email,
           role: user.role,
+          asalInstansi: user.asalInstansi,
+          nomorTelepon: user.nomorTelepon,
+          fotoProfil: user.fotoProfil,
         },
       };
       console.log("Signup Data:", supabaseUser);

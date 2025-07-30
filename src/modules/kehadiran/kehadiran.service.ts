@@ -251,15 +251,22 @@ class kehadiranService {
     startDate?: string,
     endDate?: string
   ) {
+    console.log("Fetching attendance history for user:", userId);
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { pesertaMagang: true, pembimbing: true },
     });
 
+    // console.log("User found:", user);
     if (!user) throw new Error("User tidak ditemukan");
 
     let whereClause: any = {};
     let pesertaMagangId: string | string[] | undefined;
+    ``;
+    const allkehadiran = await prisma.kehadiran.findMany({
+      where: { pesertaMagangId: user.pesertaMagang?.id },
+    });
+    console.log("All kehadiran records:", allkehadiran);
 
     if (user.role === "PESERTA_MAGANG" && user.pesertaMagang) {
       pesertaMagangId = user.pesertaMagang.id;
@@ -286,14 +293,23 @@ class kehadiranService {
     }
 
     if (startDate) {
-      whereClause.createdAt = { gte: new Date(startDate) };
+      // whereClause.createdAt = { gte: new Date(startDate) };
+      const start = new Date(startDate);
+      start.setHours(0, 0, 0, 0); // Set ke awal hari
+      whereClause.createdAt = { gte: start };
+      console.log("Start date filter:", start);
     }
     if (endDate) {
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999); // Set ke akhir hari
       whereClause.createdAt = {
         ...whereClause.createdAt,
-        lte: new Date(endDate),
+        lte: end,
       };
+      console.log("Final whereClause:", whereClause);
     }
+
+    console.log(whereClause);
 
     const history = await prisma.kehadiran.findMany({
       where: whereClause,
@@ -314,6 +330,7 @@ class kehadiranService {
         createdAt: "desc",
       },
     });
+    console.log("Attendance history fetched:", history, "records found");
     return history;
   }
 

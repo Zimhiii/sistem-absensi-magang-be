@@ -8,6 +8,10 @@ class kehadiranService {
     qrCode: string,
     type: "MASUK" | "PULANG"
   ) {
+    const now = new Date();
+    const today = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    );
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { pesertaMagang: true },
@@ -37,9 +41,7 @@ class kehadiranService {
     if (!validQR) {
       throw new Error("QR code tidak valid atau sudah kadaluarsa");
     }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    // Menjadi:
 
     const existingAttendance = await prisma.kehadiran.findFirst({
       where: {
@@ -60,7 +62,7 @@ class kehadiranService {
           },
           data: {
             status: "HADIR",
-            waktuMasuk: new Date(),
+            waktuMasuk: today,
             qrCodeMasuk: qrCode,
           },
         });
@@ -69,7 +71,7 @@ class kehadiranService {
           data: {
             pesertaMagangId: user.pesertaMagang.id,
             status: "HADIR",
-            waktuMasuk: new Date(),
+            waktuMasuk: today,
             qrCodeMasuk: qrCode,
           },
         });
@@ -85,7 +87,7 @@ class kehadiranService {
       return prisma.kehadiran.update({
         where: { id: existingAttendance.id },
         data: {
-          waktuPulang: new Date(),
+          waktuPulang: today,
           qrCodePulang: qrCode,
         },
       });
@@ -144,7 +146,13 @@ class kehadiranService {
       }
     }
 
-    const today = new Date();
+    const now = new Date();
+    const todayWithTime = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    );
+    const today = new Date(
+      now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    );
     today.setHours(0, 0, 0, 0);
 
     const existingAttendance = await prisma.kehadiran.findFirst({
@@ -166,7 +174,7 @@ class kehadiranService {
           },
           data: {
             status: "HADIR",
-            waktuMasuk: new Date(),
+            waktuMasuk: today,
             validatedBy: scannerId,
           },
         });
@@ -175,7 +183,7 @@ class kehadiranService {
           data: {
             pesertaMagangId: pesertaMagang.id,
             status: "HADIR",
-            waktuMasuk: new Date(),
+            waktuMasuk: todayWithTime,
             validatedBy: scannerId,
           },
         });
@@ -185,14 +193,10 @@ class kehadiranService {
         throw new Error("Peserta magang belum melakukan absen masuk hari ini");
       }
 
-      if (!existingAttendance.waktuPulang) {
-        throw new Error("Peserta magang belum melakukan absen pulang hari ini");
-      }
-
       return prisma.kehadiran.update({
         where: { id: existingAttendance.id },
         data: {
-          waktuPulang: new Date(),
+          waktuPulang: todayWithTime,
           validatedBy: scannerId,
         },
       });

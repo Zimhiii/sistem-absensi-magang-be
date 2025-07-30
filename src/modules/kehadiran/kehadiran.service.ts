@@ -189,8 +189,11 @@ class kehadiranService {
         });
       }
     } else if (type === "PULANG") {
-      if (!existingAttendance) {
+      if (!existingAttendance?.waktuMasuk) {
         throw new Error("Peserta magang belum melakukan absen masuk hari ini");
+      }
+      if (existingAttendance?.waktuPulang) {
+        throw new Error("Peserta magang sudah melakukan absen pulang hari ini");
       }
 
       return prisma.kehadiran.update({

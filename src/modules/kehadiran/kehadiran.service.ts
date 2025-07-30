@@ -198,6 +198,19 @@ class kehadiranService {
             waktuMasuk: todayWithTime,
             validatedBy: scannerId,
           },
+          include: {
+            pesertaMagang: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    nama: true,
+                    fotoProfil: true,
+                  },
+                },
+              },
+            },
+          },
         });
       }
     } else if (type === "PULANG") {

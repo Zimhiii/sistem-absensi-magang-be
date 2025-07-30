@@ -176,6 +176,19 @@ class kehadiranService {
             waktuMasuk: today,
             validatedBy: scannerId,
           },
+          include: {
+            pesertaMagang: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    nama: true,
+                    fotoProfil: true,
+                  },
+                },
+              },
+            },
+          },
         });
       } else {
         return prisma.kehadiran.create({
@@ -200,6 +213,19 @@ class kehadiranService {
         data: {
           waktuPulang: todayWithTime,
           validatedBy: scannerId,
+        },
+        include: {
+          pesertaMagang: {
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  nama: true,
+                  fotoProfil: true,
+                },
+              },
+            },
+          },
         },
       });
     } else {

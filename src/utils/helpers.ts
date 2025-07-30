@@ -59,3 +59,15 @@ export async function generateExcel(data: any[], title: string) {
   const buffer = await workbook.xlsx.writeBuffer();
   return buffer;
 }
+
+export const getWIBDate = () => {
+  return new Date(
+    new Date().toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+  );
+};
+
+export const getWIBStartOfDay = () => {
+  const date = getWIBDate();
+  date.setHours(0, 0, 0, 0);
+  return date;
+};

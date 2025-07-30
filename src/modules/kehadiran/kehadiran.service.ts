@@ -1,6 +1,10 @@
 // import { $ } from "@prisma/client";
 import prisma from "../../config/prisma.js";
-import { generateExcel } from "../../utils/helpers.js";
+import {
+  generateExcel,
+  getWIBDate,
+  getWIBStartOfDay,
+} from "../../utils/helpers.js";
 
 class kehadiranService {
   async recordAttendance(
@@ -146,14 +150,9 @@ class kehadiranService {
       }
     }
 
-    const now = new Date();
-    const todayWithTime = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
-    );
-    const today = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
-    );
-    today.setHours(0, 0, 0, 0);
+    // const now = new Date();
+    const todayWithTime = getWIBDate();
+    const today = getWIBStartOfDay();
 
     const existingAttendance = await prisma.kehadiran.findFirst({
       where: {

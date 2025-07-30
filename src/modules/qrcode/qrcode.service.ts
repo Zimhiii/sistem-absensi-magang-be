@@ -1,6 +1,8 @@
 // import { Role } from "@prisma/client";
+import { get } from "http";
 import prisma from "../../config/prisma.js";
 import { generateQRCodeByData } from "../../utils/qrGenerator.js";
+import { getWIBDate, getWIBStartOfDay } from "../../utils/helpers.js";
 
 class QRCodeService {
   async generateQRCode(
@@ -48,7 +50,7 @@ class QRCodeService {
     const code = `TELKOM-${Date.now()}-${Math.random()
       .toString(36)
       .substring(2, 9)}`;
-    const expiresAt = new Date();
+    const expiresAt = getWIBDate();
     expiresAt.setMinutes(expiresAt.getMinutes() + expiresInMinutes);
 
     const qrCode = await prisma.qRCode.create({
@@ -100,12 +102,14 @@ class QRCodeService {
       where: { id: userId },
     });
 
+    const now = getWIBStartOfDay();
+
     if (!user) throw new Error("User tidak ditemukan");
 
     const qrCodes = await prisma.qRCode.findMany({
       where: {
         creatorId: userId,
-        expiresAt: { gt: new Date() },
+        expiresAt: { gt: now },
       },
       orderBy: {
         expiresAt: "asc",

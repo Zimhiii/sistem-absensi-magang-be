@@ -220,6 +220,70 @@ class AuthService {
       },
     };
   }
+  // ...existing code...
+
+  async forgotPassword(email: string) {
+    // 1. Cek apakah user ada
+    const user = await prisma.user.findUnique({
+      where: { email },
+    });
+
+    if (!user) {
+      throw new Error("Email tidak terdaftar");
+    }
+
+    // 2. Kirim reset password email menggunakan Supabase
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      // redirectTo: `${process.env.FRONTEND_URL}/reset-password`, // Ganti dengan URL frontend Anda
+      redirectTo: "sistempresensimagangtelkom://auth-callback",
+    });
+
+    if (error) {
+      console.error("Supabase reset password error:", error);
+      throw new Error("Gagal mengirim email reset password");
+    }
+
+    return {
+      message: "Email reset password telah dikirim. Silakan cek email Anda",
+    };
+  }
+
+  async resetPassword(accessToken: string, newPassword: string) {
+    try {
+      // 1. Set session dengan access token
+      const { data: sessionData, error: sessionError } =
+        await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: "", // Tidak diperlukan untuk reset password
+        });
+
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        throw new Error(
+          "Token reset password tidak valid atau sudah kadaluarsa"
+        );
+      }
+
+      // 2. Update password di Supabase
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        console.error("Supabase update password error:", error);
+        throw new Error("Gagal mengubah password");
+      }
+
+      return {
+        message: "Password berhasil diubah",
+      };
+    } catch (error: any) {
+      console.error("Reset password error:", error);
+      throw new Error("Gagal mengubah password");
+    }
+  }
+
+  // ...existing code...
 }
 
 export default new AuthService();

@@ -30,7 +30,9 @@ class UserController {
   async updateProfilePicture(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
+      console.log("User ID:", userId);
       const file = req.file;
+      console.log("File:", file);
       if (!file) throw new Error("File tidak ditemukan");
       const result = await userService.updateProfilePicture(userId!, file);
       res.status(200).json(result);
@@ -58,6 +60,9 @@ class UserController {
         role,
         nomorTelepon,
       });
+      console.log("Create User Result:", result);
+      res.status(201).json(result);
+      // return result;
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }
@@ -78,6 +83,8 @@ class UserController {
     try {
       const { id } = req.params;
       const result = await userService.deleteUser(id);
+      console.log("Delete User Result:", result);
+      if (!result) throw new Error("User tidak ditemukan");
       res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

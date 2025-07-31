@@ -9,13 +9,19 @@ class QRCodeController {
   async generateQRCode(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const { expiresInMinutes, forRole, pesertaMagangId } = req.body;
+      const { expiresInMinute, forRole, pesertaMagangId, date, timeType } =
+        req.body;
+      console.log("Request body:", req.body);
       const result = await qrcodeService.generateQRCode(
         userId!,
-        expiresInMinutes,
+        expiresInMinute,
         forRole,
-        pesertaMagangId
+        pesertaMagangId,
+        date,
+        timeType
       );
+
+      console.log("Generated QR Code Result:", result);
 
       res.status(201).json(result);
     } catch (error: any) {
@@ -36,7 +42,9 @@ class QRCodeController {
   async getGeneratedQRCodes(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
+      console.log("User ID:", userId);
       const result = await qrcodeService.getGenerateQRCodes(userId!);
+      console.log("Generated QR Codes:", result);
       res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

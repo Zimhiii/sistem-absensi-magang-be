@@ -6,6 +6,30 @@ interface AuthenticatedRequest extends Request {
 }
 
 class PembimbingController {
+  async getAllPembimbing(req: AuthenticatedRequest, res: Response) {
+    try {
+      const pembimbings = await pembimbingService.getAllPembimbing();
+      res.json(pembimbings);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async selectPembimbing(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const { pembimbingId } = req.body;
+
+      const result = await pembimbingService.selectPembimbing(
+        userId!,
+        pembimbingId
+      );
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
   async getMyStudents(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;

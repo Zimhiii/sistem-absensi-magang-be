@@ -39,6 +39,41 @@ class AuthController {
       res.status(400).json({ error: error.message });
     }
   }
+  // ...existing code...
+
+  async forgotPassword(req: Request, res: Response) {
+    try {
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ error: "Email harus diisi" });
+      }
+
+      const result = await authService.forgotPassword(email);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async resetPassword(req: Request, res: Response) {
+    try {
+      const { token, newPassword } = req.body;
+
+      if (!token || !newPassword) {
+        return res
+          .status(400)
+          .json({ error: "Token dan password baru harus diisi" });
+      }
+
+      const result = await authService.resetPassword(token, newPassword);
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // ...existing code...
 }
 
 export default new AuthController();

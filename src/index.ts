@@ -37,6 +37,8 @@ app.post("/auth/login", authController.login);
 app.post("/auth/signup", authController.signup);
 app.post("/auth/login/google", authController.loginWithGoogle);
 app.post("/auth/signup/google", authController.signupWithGoogle);
+app.post("/auth/forgot-password", authController.forgotPassword);
+app.post("/auth/reset-password", authController.resetPassword);
 
 // User Routes
 app.get("/users/me", authenticate, userController.getProfile);
@@ -76,7 +78,7 @@ app.delete(
 
 //Kehadiran Route
 app.post(
-  "/kehadiran.record",
+  "/kehadiran/record",
   authenticate,
   authorize(["PESERTA_MAGANG"]),
   kehadiranController.recordAttendance
@@ -141,6 +143,21 @@ app.get(
   authorize(["PEEMBIMBING"]),
   pembimbingController.getMyStudents
 );
+
+app.get(
+  "/pembimbing",
+  authenticate,
+  authorize(["PESERTA_MAGANG", "ADMIN"]),
+  pembimbingController.getAllPembimbing
+);
+
+app.post(
+  "/pembimbing/select",
+  authenticate,
+  authorize(["PESERTA_MAGANG"]),
+  pembimbingController.selectPembimbing
+);
+
 app.post(
   "/pembimbing/verify-students",
   authenticate,

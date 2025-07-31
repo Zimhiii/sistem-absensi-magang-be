@@ -54,8 +54,12 @@ class UserService {
   }
 
   async updateProfilePicture(userId: string, file: Express.Multer.File) {
+    console.log("Updating profile picture for user:", userId);
+    console.log("File details:", file);
     const fileExt = file.originalname.split(".").pop();
     const fileName = `profile-${userId}-${Date.now()}.${fileExt}`;
+    console.log("Generated file name:", fileName);
+    console.log("FileExtension:", fileExt);
 
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from("profile-pictures")
@@ -65,9 +69,11 @@ class UserService {
 
     if (uploadError) throw new Error("Gagal mengupload foto profil");
 
-    const { data: urlData } = supabase.storage
+    const { data: urlData } = await supabase.storage
       .from("profile-pictures")
       .getPublicUrl(fileName);
+
+    if (!urlData) throw new Error("Gagal mendapatkan URL foto profil");
 
     const user = await prisma.user.update({
       where: { id: userId },
@@ -111,6 +117,10 @@ class UserService {
       email: data.email,
       email_confirm: true,
     });
+    console.log(data);
+    console.log(error);
+
+    console.log("Supabase Data:", supabaseData);
 
     if (error) throw new Error(error.message);
 
@@ -119,6 +129,7 @@ class UserService {
         nama: data.nama,
         email: data.email,
         role: data.role,
+        id: supabaseData.user?.id,
         nomorTelepon: data.nomorTelepon,
       },
     });
@@ -177,13 +188,23 @@ class UserService {
 
   async deleteUser(id: string) {
     const user = await prisma.user.findUnique({ where: { id: id } });
+    const supabaseUser = await supabase.auth.admin.getUserById(id);
+    if (user?.role === "PEMBIMBING") {
+      await prisma.pembimbing.delete({ where: { userId: user.id } });
+    }
+    if (user?.role === "PESERTA_MAGANG") {
+      await prisma.pesertaMagang.delete({ where: { userId: user.id } });
+    }
+    if (user?.role === "SATPAM") {
+      await prisma.satpam.delete({ where: { userId: user.id } });
+    }
+    console.log("User to delete:", user);
     if (!user) throw new Error("User tidak ditemukan");
-
-    await supabase.auth.admin.deleteUser(user.email);
+    await supabase.auth.admin.deleteUser(user.id);
 
     await prisma.user.delete({ where: { id: id } });
 
-    return { succes: true };
+    return { success: true };
   }
 }
 

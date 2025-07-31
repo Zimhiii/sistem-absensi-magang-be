@@ -1,4 +1,34 @@
 class PembimbingService {
+  async getAllPembimbing() {
+    return await prisma.pembimbing.findMany({
+      include: {
+        user: {
+          select: {
+            id: true,
+            nama: true,
+            email: true,
+            fotoProfil: true,
+          },
+        },
+      },
+    });
+  }
+
+  async selectPembimbing(userId: string, pembimbingId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { pesertaMagang: true },
+    });
+
+    if (!user?.pesertaMagang) {
+      throw new Error("Hanya peserta magang yang dapat memilih pembimbing");
+    }
+
+    return await prisma.pesertaMagang.update({
+      where: { id: user.pesertaMagang.id },
+      data: { pembimbingId },
+    });
+  }
   async getMyStudents(pembimbingId: string) {
     const pembimbing = await prisma.pembimbing.findUnique({
       where: { userId: pembimbingId },

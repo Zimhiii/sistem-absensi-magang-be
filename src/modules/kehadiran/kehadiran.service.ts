@@ -12,10 +12,18 @@ class kehadiranService {
     qrCode: string,
     type: "MASUK" | "PULANG"
   ) {
-    const now = new Date();
-    const today = new Date(
-      now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    console.log(
+      `Recording attendance for user ${userId} with QR code ${qrCode} and type ${type}`
     );
+    const now = new Date();
+    // const today = new Date(
+    //   now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
+    // );
+    now.setHours(now.getHours() + 7); // Tambahkan 7 jam untuk WIB
+    // console.log("Current date in WIB:", today);
+    const todayWithTime = now;
+    console.log("Current date in WIB:", todayWithTime);
+
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { pesertaMagang: true },
@@ -25,28 +33,31 @@ class kehadiranService {
       throw new Error("Hanya peserta magang yang dapat melakukan kehadiran");
     }
 
+    console.log("Current time (used):", todayWithTime);
+    console.log("time + 7", todayWithTime.getHours() + 7);
     const validQR = await prisma.qRCode.findFirst({
       where: {
         code: qrCode,
         expiresAt: {
-          gt: new Date(),
+          gt: todayWithTime, // Pastikan QR code belum kadaluarsa
         },
-        OR: [
-          {
-            forRole: null,
-          },
-          {
-            forRole: "PESERTA_MAGANG",
-          },
-        ],
+        // OR: [
+        //   {
+        //     forRole: null,
+        //   },
+        //   {
+        //     forRole: "PESERTA_MAGANG",
+        //   },
+        // ],
       },
     });
+    console.log("Valid QR Code:", validQR);
 
     if (!validQR) {
       throw new Error("QR code tidak valid atau sudah kadaluarsa");
     }
     // Menjadi:
-
+    const today = getWIBStartOfDay();
     const existingAttendance = await prisma.kehadiran.findFirst({
       where: {
         pesertaMagangId: user.pesertaMagang.id,
@@ -54,45 +65,53 @@ class kehadiranService {
       },
     });
 
+    console.log("Existing Attendance:", existingAttendance);
+
     if (type === "MASUK") {
-      if (existingAttendance && existingAttendance.waktuMasuk) {
+      if (existingAttendance?.waktuMasuk) {
         throw new Error("Anda sudah melakukan absen masuk hari ini");
       }
 
       if (existingAttendance) {
         return prisma.kehadiran.update({
-          where: {
-            id: existingAttendance.id,
-          },
+          where: { id: existingAttendance.id },
           data: {
             status: "HADIR",
-            waktuMasuk: today,
+            waktuMasuk: todayWithTime,
             qrCodeMasuk: qrCode,
           },
         });
       } else {
-        return prisma.kehadiran.create({
-          data: {
-            pesertaMagangId: user.pesertaMagang.id,
-            status: "HADIR",
-            waktuMasuk: today,
-            qrCodeMasuk: qrCode,
-          },
-        });
+        if (existingAttendance) {
+          return prisma.kehadiran.create({
+            data: {
+              pesertaMagangId: user.pesertaMagang.id,
+              status: "HADIR",
+              waktuMasuk: todayWithTime,
+              qrCodeMasuk: qrCode,
+            },
+          });
+        }
       }
-    } else if (type === "PULANG") {
+    }
+
+    if (type === "PULANG") {
+      if (existingAttendance?.waktuPulang) {
+        throw new Error("Anda Sudah melakukan absen pulang hari ini");
+      }
       if (!existingAttendance) {
         throw new Error("Anda belum melakukan absen masuk hari ini");
       }
-      if (!existingAttendance.waktuPulang) {
+      if (!existingAttendance.waktuMasuk) {
         throw new Error("Anda belum melakukan absen pulang hari ini");
       }
 
       return prisma.kehadiran.update({
         where: { id: existingAttendance.id },
         data: {
-          waktuPulang: today,
+          waktuPulang: todayWithTime,
           qrCodePulang: qrCode,
+          updatedAt: todayWithTime,
         },
       });
     } else {
@@ -151,8 +170,15 @@ class kehadiranService {
     }
 
     // const now = new Date();
-    const todayWithTime = getWIBDate();
     const today = getWIBStartOfDay();
+    const todaywithoutTime = new Date();
+    const now = new Date();
+    now.setHours(now.getHours() + 7); // Tambahkan 7 jam untuk WIB
+    const todayWithTime = now;
+    console.log("now", now);
+    console.log("Current date in WIB:", today);
+    console.log("Current time (used):", todayWithTime);
+    console.log("time + 7", todayWithTime.getHours() + 7);
 
     const existingAttendance = await prisma.kehadiran.findFirst({
       where: {
@@ -214,6 +240,11 @@ class kehadiranService {
         });
       }
     } else if (type === "PULANG") {
+      console.log("Current date in WIB:", today);
+      console.log("Current time (used):", todayWithTime);
+      console.log("time + 7", todayWithTime.getHours() + 7);
+
+      console.log("default time", todaywithoutTime);
       if (!existingAttendance?.waktuMasuk) {
         throw new Error("Peserta magang belum melakukan absen masuk hari ini");
       }

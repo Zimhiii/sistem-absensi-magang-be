@@ -10,6 +10,9 @@ class KehadiranController {
     try {
       const userId = req.user?.id;
       const { qrCode, type } = req.body;
+      console.log(
+        `Recording attendance for user ${userId} with QR code ${qrCode} and type ${type}`
+      );
       const result = await kehadiranService.recordAttendance(
         userId!,
         qrCode,

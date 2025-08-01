@@ -227,6 +227,7 @@ class KehadiranController {
     try {
       const result = await kehadiranService.exportSummaryByInstansi();
 
+      console.log(result);
       // Generate nama file yang bagus dengan timestamp
       const timestamp = new Date().toISOString().split("T")[0];
       const fileName = `📈 RINGKASAN KEHADIRAN PER INSTANSI - ${timestamp}.xlsx`;

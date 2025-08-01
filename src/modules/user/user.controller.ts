@@ -42,8 +42,10 @@ class UserController {
   }
 
   async getAllUsers(req: Request, res: Response) {
+    console.log("Get All Users Request:", req.query);
     try {
       const { role } = req.query;
+      console.log("Get All Users Role:", role);
       const result = await userService.getAllusers(role as string | undefined);
       res.status(200).json(result);
     } catch (error: any) {

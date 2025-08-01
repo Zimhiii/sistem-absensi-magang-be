@@ -451,6 +451,9 @@ class kehadiranService {
     status: "APPROVED" | "REJECTED",
     catatan?: string
   ) {
+    console.log(
+      `Validating izin ${izinId} by validator ${validatorId} with status ${status} and note: ${catatan}`
+    );
     const validator = await prisma.user.findUnique({
       where: { id: validatorId },
       include: { pembimbing: true },

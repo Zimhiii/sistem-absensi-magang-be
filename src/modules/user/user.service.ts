@@ -115,6 +115,7 @@ class UserService {
   }) {
     const { data: supabaseData, error } = await supabase.auth.admin.createUser({
       email: data.email,
+      password: "password123", // Default password, should be changed by user
       email_confirm: true,
     });
     console.log(data);

@@ -58,17 +58,28 @@ class AuthController {
 
   async resetPassword(req: Request, res: Response) {
     try {
-      const { token, newPassword } = req.body;
+      const { token, refreshToken, newPassword } = req.body;
 
       if (!token || !newPassword) {
-        return res
-          .status(400)
-          .json({ error: "Token dan password baru harus diisi" });
+        return res.status(400).json({
+          error: "Token dan password baru harus diisi",
+        });
       }
 
-      const result = await authService.resetPassword(token, newPassword);
+      if (newPassword.length < 6) {
+        return res.status(400).json({
+          error: "Password minimal 6 karakter",
+        });
+      }
+
+      const result = await authService.resetPassword(
+        token,
+        refreshToken || "",
+        newPassword
+      );
       res.json(result);
     } catch (error: any) {
+      console.error("Reset password controller error:", error);
       res.status(400).json({ error: error.message });
     }
   }

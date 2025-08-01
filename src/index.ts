@@ -84,6 +84,54 @@ app.post(
   kehadiranController.recordAttendance
 );
 
+// Request izin (Peserta Magang)
+app.post(
+  "/kehadiran/request-izin",
+  authenticate,
+  authorize(["PESERTA_MAGANG"]),
+  kehadiranController.requestIzin
+);
+
+// Validasi izin (Pembimbing & Admin)
+app.post(
+  "/kehadiran/validate-izin",
+  authenticate,
+  authorize(["ADMIN", "PEMBIMBING"]),
+  kehadiranController.validateIzin
+);
+
+// Riwayat izin saya (Peserta Magang)
+app.get(
+  "/kehadiran/my-izin-history",
+  authenticate,
+  authorize(["PESERTA_MAGANG"]),
+  kehadiranController.getMyIzinHistory
+);
+
+// Izin pending untuk divalidasi (Pembimbing)
+app.get(
+  "/kehadiran/izin/pending",
+  authenticate,
+  authorize(["PEMBIMBING"]),
+  kehadiranController.getPendingIzin
+);
+
+// Riwayat semua izin peserta bimbingan (Pembimbing)
+app.get(
+  "/kehadiran/izin/history",
+  authenticate,
+  authorize(["PEMBIMBING"]),
+  kehadiranController.getAllIzinHistory
+);
+
+// Semua izin untuk admin (Admin only)
+app.get(
+  "/kehadiran/izin/admin/all",
+  authenticate,
+  authorize(["ADMIN"]),
+  kehadiranController.getAllIzinForAdmin
+);
+
 app.post(
   "/kehadiran/scan",
   authenticate,
@@ -116,6 +164,38 @@ app.get(
   kehadiranController.exportAttendance
 );
 
+// Export attendance semua peserta berdasarkan instansi (Admin only)
+app.get(
+  "/kehadiran/export/all-by-instansi",
+  authenticate,
+  authorize(["ADMIN"]),
+  kehadiranController.exportAllAttendanceByInstansi
+);
+
+// Export summary attendance berdasarkan instansi (Admin only)
+app.get(
+  "/kehadiran/export/summary-by-instansi",
+  authenticate,
+  authorize(["ADMIN"]),
+  kehadiranController.exportSummaryByInstansi
+);
+
+// Get daftar instansi untuk filter (Admin & Pembimbing)
+app.get(
+  "/kehadiran/instansi",
+  authenticate,
+  authorize(["ADMIN", "PEMBIMBING"]),
+  kehadiranController.getDaftarInstansi
+);
+
+// Export rekap kehadiran semua peserta dalam format matrix (Admin & Pembimbing)
+app.get(
+  "/kehadiran/export/rekap-all",
+  authenticate,
+  authorize(["ADMIN", "PEMBIMBING"]),
+  kehadiranController.exportRekapKehadiranAll
+);
+
 //QR Code Routes
 app.post(
   "/qrcode/generate",
@@ -140,7 +220,7 @@ app.get(
 app.get(
   "/pembimbing/students",
   authenticate,
-  authorize(["PEEMBIMBING"]),
+  authorize(["PEMBIMBING"]),
   pembimbingController.getMyStudents
 );
 

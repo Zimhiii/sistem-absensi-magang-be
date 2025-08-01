@@ -82,16 +82,16 @@ class kehadiranService {
           },
         });
       } else {
-        if (existingAttendance) {
-          return prisma.kehadiran.create({
-            data: {
-              pesertaMagangId: user.pesertaMagang.id,
-              status: "HADIR",
-              waktuMasuk: todayWithTime,
-              qrCodeMasuk: qrCode,
-            },
-          });
-        }
+        // if (existingAttendance) {
+        return prisma.kehadiran.create({
+          data: {
+            pesertaMagangId: user.pesertaMagang.id,
+            status: "HADIR",
+            waktuMasuk: todayWithTime,
+            qrCodeMasuk: qrCode,
+          },
+        });
+        // }
       }
     }
 
@@ -380,40 +380,80 @@ class kehadiranService {
       throw new Error("Hanya peserta magang yang dapat mengajukan izin");
     }
 
+    // Parse tanggal dan set ke awal hari
     const date = new Date(tanggal);
-    date.setHours(0, 0, 0, 0);
+    const startOfDay = new Date(date);
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date(date);
+    endOfDay.setHours(23, 59, 59, 999);
 
+    // Cek apakah sudah ada kehadiran di tanggal tersebut
     const existingAttendance = await prisma.kehadiran.findFirst({
       where: {
         pesertaMagangId: user.pesertaMagang.id,
         createdAt: {
-          gte: date,
+          gte: startOfDay,
+          lte: endOfDay,
         },
       },
     });
+
     if (existingAttendance) {
       throw new Error(
         "Anda sudah memiliki record kehadiran pada tanggal tersebut"
       );
     }
 
-    return prisma.kehadiran.create({
+    const kehadiran = await prisma.kehadiran.create({
       data: {
         pesertaMagangId: user.pesertaMagang.id,
-        status: jenis === "IZIN" ? "IZIN" : "SAKIT",
+        status: jenis,
+        alasan: alasan,
+        validasiStatus: "PENDING",
+        createdAt: startOfDay,
+      },
+      include: {
+        pesertaMagang: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                nama: true,
+                email: true,
+              },
+            },
+            pembimbing: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    nama: true,
+                    email: true,
+                  },
+                },
+              },
+            },
+          },
+        },
       },
     });
+
+    return {
+      message: "Pengajuan izin berhasil dibuat",
+      data: kehadiran,
+    };
   }
 
+  // Validasi izin oleh pembimbing/admin
   async validateIzin(
     validatorId: string,
     izinId: string,
-    status: "APPROVED" | "REJECTED"
+    status: "APPROVED" | "REJECTED",
+    catatan?: string
   ) {
     const validator = await prisma.user.findUnique({
-      where: {
-        id: validatorId,
-      },
+      where: { id: validatorId },
+      include: { pembimbing: true },
     });
 
     if (
@@ -430,35 +470,282 @@ class kehadiranService {
       include: {
         pesertaMagang: {
           include: {
+            user: true,
             pembimbing: true,
           },
         },
       },
     });
 
-    if (!izin) throw new Error("Izin tidak ditemukan");
-
-    if (
-      validator.role === "PEMBIMBING" &&
-      izin.pesertaMagang.pembimbingId !== validator.id
-    ) {
-      throw new Error("Anda tidak berhak memvalidasi izin peserta magang ini");
+    if (!izin) {
+      throw new Error("Data izin tidak ditemukan");
     }
 
-    if (status === "APPROVED") {
-      return prisma.kehadiran.update({
-        where: { id: izinId },
-        data: {
-          validatedBy: validatorId,
-        },
-      });
-    } else {
-      return prisma.kehadiran.delete({
-        where: {
-          id: izinId,
-        },
-      });
+    if (izin.validasiStatus !== "PENDING") {
+      throw new Error("Izin ini sudah divalidasi sebelumnya");
     }
+
+    // Jika validator adalah pembimbing, pastikan dia membimbing peserta magang ini
+    if (validator.role === "PEMBIMBING") {
+      if (izin.pesertaMagang.pembimbingId !== validator.pembimbing?.id) {
+        throw new Error(
+          "Anda hanya dapat memvalidasi izin peserta magang yang Anda bimbing"
+        );
+      }
+    }
+
+    const updatedIzin = await prisma.kehadiran.update({
+      where: { id: izinId },
+      data: {
+        validasiStatus: status,
+        validasiAt: new Date(),
+        validatedBy: validatorId,
+        alasan: catatan
+          ? `${izin.alasan}\n\nCatatan Validasi: ${catatan}`
+          : izin.alasan,
+      },
+      include: {
+        pesertaMagang: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                nama: true,
+                email: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return {
+      message: `Izin berhasil ${
+        status === "APPROVED" ? "disetujui" : "ditolak"
+      }`,
+      data: updatedIzin,
+    };
+  }
+
+  // Melihat riwayat izin untuk peserta magang
+  async getMyIzinHistory(userId: string) {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { pesertaMagang: true },
+    });
+
+    if (!user || !user.pesertaMagang) {
+      throw new Error("Hanya peserta magang yang dapat melihat riwayat izin");
+    }
+
+    const izinHistory = await prisma.kehadiran.findMany({
+      where: {
+        pesertaMagangId: user.pesertaMagang.id,
+        status: { in: ["IZIN", "SAKIT"] },
+      },
+      include: {
+        pesertaMagang: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                nama: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    // Add validator info for validated items
+    const izinWithValidator = await Promise.all(
+      izinHistory.map(async (izin) => {
+        let validatorInfo = null;
+        if (izin.validatedBy) {
+          validatorInfo = await prisma.user.findUnique({
+            where: { id: izin.validatedBy },
+            select: {
+              id: true,
+              nama: true,
+              role: true,
+            },
+          });
+        }
+
+        return {
+          ...izin,
+          validator: validatorInfo,
+        };
+      })
+    );
+
+    return izinWithValidator;
+  }
+
+  // Melihat izin pending untuk pembimbing
+  async getPendingIzinByPembimbing(pembimbingId: string) {
+    const pembimbing = await prisma.user.findUnique({
+      where: { id: pembimbingId },
+      include: { pembimbing: true },
+    });
+
+    if (!pembimbing || pembimbing.role !== "PEMBIMBING") {
+      throw new Error("Hanya pembimbing yang dapat melihat izin pending");
+    }
+
+    const pendingIzin = await prisma.kehadiran.findMany({
+      where: {
+        pesertaMagang: {
+          pembimbingId: pembimbing.pembimbing?.id,
+        },
+        status: { in: ["IZIN", "SAKIT"] },
+        validasiStatus: "PENDING",
+      },
+      include: {
+        pesertaMagang: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                nama: true,
+                email: true,
+                fotoProfil: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    return pendingIzin;
+  }
+
+  // Melihat semua riwayat izin untuk pembimbing
+  async getAllIzinHistoryByPembimbing(pembimbingId: string) {
+    const pembimbing = await prisma.user.findUnique({
+      where: { id: pembimbingId },
+      include: { pembimbing: true },
+    });
+
+    if (!pembimbing || pembimbing.role !== "PEMBIMBING") {
+      throw new Error("Hanya pembimbing yang dapat melihat riwayat izin");
+    }
+
+    const izinHistory = await prisma.kehadiran.findMany({
+      where: {
+        pesertaMagang: {
+          pembimbingId: pembimbing.pembimbing?.id,
+        },
+        status: { in: ["IZIN", "SAKIT"] },
+      },
+      include: {
+        pesertaMagang: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                nama: true,
+                email: true,
+                fotoProfil: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    // Add validator info
+    const izinWithValidator = await Promise.all(
+      izinHistory.map(async (izin) => {
+        let validatorInfo = null;
+        if (izin.validatedBy) {
+          validatorInfo = await prisma.user.findUnique({
+            where: { id: izin.validatedBy },
+            select: {
+              id: true,
+              nama: true,
+              role: true,
+            },
+          });
+        }
+
+        return {
+          ...izin,
+          validator: validatorInfo,
+        };
+      })
+    );
+
+    return izinWithValidator;
+  }
+
+  // Untuk admin - melihat semua izin (opsional)
+  async getAllIzinForAdmin() {
+    const allIzin = await prisma.kehadiran.findMany({
+      where: {
+        status: { in: ["IZIN", "SAKIT"] },
+      },
+      include: {
+        pesertaMagang: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                nama: true,
+                email: true,
+                fotoProfil: true,
+              },
+            },
+            pembimbing: {
+              include: {
+                user: {
+                  select: {
+                    id: true,
+                    nama: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    // Add validator info
+    const izinWithValidator = await Promise.all(
+      allIzin.map(async (izin) => {
+        let validatorInfo = null;
+        if (izin.validatedBy) {
+          validatorInfo = await prisma.user.findUnique({
+            where: { id: izin.validatedBy },
+            select: {
+              id: true,
+              nama: true,
+              role: true,
+            },
+          });
+        }
+
+        return {
+          ...izin,
+          validator: validatorInfo,
+        };
+      })
+    );
+
+    return izinWithValidator;
   }
 
   async exportAttendance(
@@ -541,13 +828,510 @@ class kehadiranService {
         Nama: pesertaMagang.user.nama,
         Pembimbing: pesertaMagang.pembimbing?.user.nama || "-",
         Status: k.status,
-        "Waktu Masuk": k.waktuMasuk?.toLocaleTimeString() || "-",
-        "Waktu Pulang": k.waktuPulang?.toLocaleTimeString() || "-",
+        "Waktu Masuk": k.waktuMasuk
+          ? k.waktuMasuk.toLocaleTimeString("id-ID", {
+              timeZone: "Asia/Jakarta",
+            })
+          : "-",
+        "Waktu Pulang": k.waktuPulang
+          ? k.waktuPulang.toLocaleTimeString("id-ID", {
+              timeZone: "Asia/Jakarta",
+            })
+          : "-",
       })
     );
 
     return generateExcel(data, `Laporan Kehadiran ${pesertaMagang.user.nama}`);
   }
+
+  // Export attendance untuk semua peserta berdasarkan asal instansi
+  async exportAllAttendanceByInstansi(asalInstansi?: string) {
+    const whereClause: any = {};
+
+    // Filter berdasarkan asal instansi jika ada
+    if (asalInstansi) {
+      whereClause.pesertaMagang = {
+        user: {
+          asalInstansi: asalInstansi,
+        },
+      };
+    }
+
+    const kehadiran = await prisma.kehadiran.findMany({
+      where: whereClause,
+      include: {
+        pesertaMagang: {
+          include: {
+            user: {
+              select: {
+                nama: true,
+                asalInstansi: true,
+                email: true,
+                nomorTelepon: true,
+              },
+            },
+            pembimbing: {
+              include: {
+                user: {
+                  select: {
+                    nama: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        {
+          pesertaMagang: {
+            user: {
+              asalInstansi: "asc",
+            },
+          },
+        },
+        {
+          pesertaMagang: {
+            user: {
+              nama: "asc",
+            },
+          },
+        },
+        {
+          createdAt: "asc",
+        },
+      ],
+    });
+
+    // Format data untuk Excel dengan styling yang lebih baik
+    const data = kehadiran.map((k) => ({
+      "📅 TANGGAL": new Date(k.createdAt).toLocaleDateString("id-ID", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      }),
+      "👤 NAMA PESERTA": k.pesertaMagang.user.nama,
+      "🏢 ASAL INSTANSI":
+        k.pesertaMagang.user.asalInstansi || "Tidak Diketahui",
+      "📧 EMAIL": k.pesertaMagang.user.email,
+      "📱 NO. TELEPON": k.pesertaMagang.user.nomorTelepon || "-",
+      "👨‍🏫 PEMBIMBING":
+        k.pesertaMagang.pembimbing?.user.nama || "Belum Ditentukan",
+      "📊 STATUS KEHADIRAN":
+        k.status === "HADIR"
+          ? "✅ HADIR"
+          : k.status === "IZIN"
+          ? "📝 IZIN"
+          : k.status === "SAKIT"
+          ? "🏥 SAKIT"
+          : "❌ ALPHA",
+      "🕐 WAKTU MASUK": k.waktuMasuk
+        ? k.waktuMasuk.toLocaleTimeString("id-ID", {
+            timeZone: "Asia/Jakarta",
+            hour: "2-digit",
+            minute: "2-digit",
+          }) + " WIB"
+        : "-",
+      "🕕 WAKTU PULANG": k.waktuPulang
+        ? k.waktuPulang.toLocaleTimeString("id-ID", {
+            timeZone: "Asia/Jakarta",
+            hour: "2-digit",
+            minute: "2-digit",
+          }) + " WIB"
+        : "-",
+      "📝 KETERANGAN": k.alasan || "-",
+      "✅ STATUS VALIDASI":
+        k.validasiStatus === "APPROVED"
+          ? "✅ Disetujui"
+          : k.validasiStatus === "REJECTED"
+          ? "❌ Ditolak"
+          : k.validasiStatus === "PENDING"
+          ? "⏳ Menunggu"
+          : "-",
+    }));
+
+    const fileName = asalInstansi
+      ? `📊 LAPORAN KEHADIRAN - ${asalInstansi.toUpperCase()}`
+      : `📊 LAPORAN KEHADIRAN - SEMUA INSTANSI`;
+
+    return generateExcel(data, fileName);
+  }
+
+  // Export summary attendance berdasarkan instansi
+  async exportSummaryByInstansi() {
+    const kehadiran = await prisma.kehadiran.findMany({
+      include: {
+        pesertaMagang: {
+          include: {
+            user: {
+              select: {
+                nama: true,
+                asalInstansi: true,
+                email: true,
+                nomorTelepon: true,
+              },
+            },
+            pembimbing: {
+              include: {
+                user: {
+                  select: {
+                    nama: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Group data berdasarkan instansi dan peserta
+    const groupedData = kehadiran.reduce((acc: any, k) => {
+      const instansi = k.pesertaMagang.user.asalInstansi || "Tidak Diketahui";
+      const nama = k.pesertaMagang.user.nama;
+      const email = k.pesertaMagang.user.email;
+      const telepon = k.pesertaMagang.user.nomorTelepon;
+      const pembimbing = k.pesertaMagang.pembimbing?.user.nama;
+      const key = `${instansi}_${nama}`;
+
+      if (!acc[key]) {
+        acc[key] = {
+          instansi,
+          nama,
+          email,
+          telepon,
+          pembimbing,
+          totalHadir: 0,
+          totalIzin: 0,
+          totalSakit: 0,
+          totalAlpha: 0,
+          totalHari: 0,
+          tanggalPertama: k.createdAt,
+          tanggalTerakhir: k.createdAt,
+        };
+      }
+
+      acc[key].totalHari++;
+
+      // Update tanggal
+      if (k.createdAt < acc[key].tanggalPertama) {
+        acc[key].tanggalPertama = k.createdAt;
+      }
+      if (k.createdAt > acc[key].tanggalTerakhir) {
+        acc[key].tanggalTerakhir = k.createdAt;
+      }
+
+      switch (k.status) {
+        case "HADIR":
+          acc[key].totalHadir++;
+          break;
+        case "IZIN":
+          acc[key].totalIzin++;
+          break;
+        case "SAKIT":
+          acc[key].totalSakit++;
+          break;
+        case "ALPHA":
+          acc[key].totalAlpha++;
+          break;
+      }
+
+      return acc;
+    }, {});
+
+    // Convert to array dan hitung persentase dengan styling yang lebih baik
+    const summaryData = Object.values(groupedData).map((item: any) => {
+      const persentaseKehadiran =
+        item.totalHari > 0 ? (item.totalHadir / item.totalHari) * 100 : 0;
+
+      let statusKehadiran = "";
+      if (persentaseKehadiran >= 90) statusKehadiran = "🟢 EXCELLENT";
+      else if (persentaseKehadiran >= 80) statusKehadiran = "🔵 GOOD";
+      else if (persentaseKehadiran >= 70) statusKehadiran = "🟡 FAIR";
+      else statusKehadiran = "🔴 NEEDS IMPROVEMENT";
+
+      return {
+        "🏢 ASAL INSTANSI": item.instansi,
+        "👤 NAMA PESERTA": item.nama,
+        "📧 EMAIL": item.email,
+        "📱 NO. TELEPON": item.telepon || "-",
+        "👨‍🏫 PEMBIMBING": item.pembimbing || "Belum Ditentukan",
+        "📅 PERIODE": `${item.tanggalPertama.toLocaleDateString(
+          "id-ID"
+        )} - ${item.tanggalTerakhir.toLocaleDateString("id-ID")}`,
+        "📊 TOTAL HARI": item.totalHari,
+        "✅ HADIR": item.totalHadir,
+        "📝 IZIN": item.totalIzin,
+        "🏥 SAKIT": item.totalSakit,
+        "❌ ALPHA": item.totalAlpha,
+        "📈 PERSENTASE KEHADIRAN": `${persentaseKehadiran.toFixed(1)}%`,
+        "🎯 STATUS": statusKehadiran,
+      };
+    });
+
+    // Sort berdasarkan instansi dan persentase kehadiran
+    summaryData.sort((a, b) => {
+      if (a["🏢 ASAL INSTANSI"] !== b["🏢 ASAL INSTANSI"]) {
+        return a["🏢 ASAL INSTANSI"].localeCompare(b["🏢 ASAL INSTANSI"]);
+      }
+      // Sort by persentase kehadiran (descending)
+      const percentA = parseFloat(
+        a["📈 PERSENTASE KEHADIRAN"].replace("%", "")
+      );
+      const percentB = parseFloat(
+        b["📈 PERSENTASE KEHADIRAN"].replace("%", "")
+      );
+      return percentB - percentA;
+    });
+
+    const fileName = `📈 RINGKASAN KEHADIRAN PER INSTANSI`;
+    return generateExcel(summaryData, fileName);
+  } // Get daftar instansi untuk filter
+  async getDaftarInstansi() {
+    const instansi = await prisma.user.findMany({
+      where: {
+        role: "PESERTA_MAGANG",
+        asalInstansi: {
+          not: null,
+        },
+      },
+      select: {
+        asalInstansi: true,
+      },
+      distinct: ["asalInstansi"],
+      orderBy: {
+        asalInstansi: "asc",
+      },
+    });
+
+    return instansi
+      .map((item) => item.asalInstansi)
+      .filter((instansi) => instansi !== null);
+  }
+
+  // Export rekap kehadiran semua peserta dalam format kolom per hari dengan tampilan yang bagus dan rapi
+  async exportRekapKehadiranAll(asalInstansi?: string) {
+    // Ambil semua data kehadiran
+    const whereClause: any = {};
+
+    if (asalInstansi) {
+      whereClause.pesertaMagang = {
+        user: {
+          asalInstansi: asalInstansi,
+        },
+      };
+    }
+
+    const kehadiran = await prisma.kehadiran.findMany({
+      where: whereClause,
+      include: {
+        pesertaMagang: {
+          include: {
+            user: {
+              select: {
+                nama: true,
+                asalInstansi: true,
+                email: true,
+                nomorTelepon: true,
+              },
+            },
+            pembimbing: {
+              include: {
+                user: {
+                  select: {
+                    nama: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+
+    // Ambil semua peserta magang
+    const pesertaMagangWhereClause: any = {};
+    if (asalInstansi) {
+      pesertaMagangWhereClause.user = {
+        asalInstansi: asalInstansi,
+      };
+    }
+
+    const allPesertaMagang = await prisma.pesertaMagang.findMany({
+      where: pesertaMagangWhereClause,
+      include: {
+        user: {
+          select: {
+            nama: true,
+            asalInstansi: true,
+            email: true,
+            nomorTelepon: true,
+          },
+        },
+        pembimbing: {
+          include: {
+            user: {
+              select: {
+                nama: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: [
+        {
+          user: {
+            asalInstansi: "asc",
+          },
+        },
+        {
+          user: {
+            nama: "asc",
+          },
+        },
+      ],
+    });
+
+    // Dapatkan semua tanggal unik dari data kehadiran dan urutkan
+    const allDates = [
+      ...new Set(kehadiran.map((k) => k.createdAt.toISOString().split("T")[0])),
+    ].sort();
+
+    // Group kehadiran berdasarkan peserta dan tanggal
+    const kehadiranMap = kehadiran.reduce((acc: any, k) => {
+      const pesertaId = k.pesertaMagangId;
+      const tanggal = k.createdAt.toISOString().split("T")[0];
+      const key = `${pesertaId}_${tanggal}`;
+
+      acc[key] = {
+        status: k.status,
+        waktuMasuk: k.waktuMasuk
+          ? k.waktuMasuk.toLocaleTimeString("id-ID", {
+              timeZone: "Asia/Jakarta",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : null,
+        waktuPulang: k.waktuPulang
+          ? k.waktuPulang.toLocaleTimeString("id-ID", {
+              timeZone: "Asia/Jakarta",
+              hour: "2-digit",
+              minute: "2-digit",
+            })
+          : null,
+        alasan: k.alasan,
+        validasiStatus: k.validasiStatus,
+      };
+
+      return acc;
+    }, {});
+
+    // Format data untuk Excel dengan header yang menarik
+    const data = allPesertaMagang.map((peserta) => {
+      const baseInfo: any = {
+        "👤 NAMA PESERTA": peserta.user.nama,
+        "🏢 ASAL INSTANSI": peserta.user.asalInstansi || "Tidak Diketahui",
+        "📧 EMAIL": peserta.user.email,
+        "📱 NO. TELEPON": peserta.user.nomorTelepon || "-",
+        "👨‍🏫 PEMBIMBING": peserta.pembimbing?.user.nama || "Belum Ditentukan",
+      };
+
+      // Tambahkan kolom untuk setiap tanggal dengan format yang bagus
+      allDates.forEach((tanggal) => {
+        const key = `${peserta.id}_${tanggal}`;
+        const kehadiranData = kehadiranMap[key];
+
+        // Format header tanggal yang rapi
+        const formatTanggal = new Date(tanggal).toLocaleDateString("id-ID", {
+          weekday: "short",
+          day: "2-digit",
+          month: "short",
+          year: "2-digit",
+        });
+
+        if (kehadiranData) {
+          let cellValue = "";
+
+          if (kehadiranData.status === "HADIR") {
+            const masuk = kehadiranData.waktuMasuk || "??:??";
+            const pulang = kehadiranData.waktuPulang || "??:??";
+            cellValue = `✅ ${masuk}-${pulang}`;
+          } else if (kehadiranData.status === "IZIN") {
+            cellValue = `📝 IZIN`;
+            if (kehadiranData.validasiStatus === "APPROVED") {
+              cellValue += " ✅";
+            } else if (kehadiranData.validasiStatus === "REJECTED") {
+              cellValue += " ❌";
+            } else {
+              cellValue += " ⏳";
+            }
+          } else if (kehadiranData.status === "SAKIT") {
+            cellValue = `🏥 SAKIT`;
+            if (kehadiranData.validasiStatus === "APPROVED") {
+              cellValue += " ✅";
+            } else if (kehadiranData.validasiStatus === "REJECTED") {
+              cellValue += " ❌";
+            } else {
+              cellValue += " ⏳";
+            }
+          } else if (kehadiranData.status === "ALPHA") {
+            cellValue = `❌ ALPHA`;
+          }
+
+          baseInfo[`📅 ${formatTanggal}`] = cellValue;
+        } else {
+          baseInfo[`📅 ${formatTanggal}`] = "⚪ -";
+        }
+      });
+
+      // Tambahkan statistik dengan format yang menarik
+      const totalHari = allDates.length;
+      const hadirCount = allDates.filter((tanggal) => {
+        const key = `${peserta.id}_${tanggal}`;
+        return kehadiranMap[key]?.status === "HADIR";
+      }).length;
+      const izinCount = allDates.filter((tanggal) => {
+        const key = `${peserta.id}_${tanggal}`;
+        return kehadiranMap[key]?.status === "IZIN";
+      }).length;
+      const sakitCount = allDates.filter((tanggal) => {
+        const key = `${peserta.id}_${tanggal}`;
+        return kehadiranMap[key]?.status === "SAKIT";
+      }).length;
+      const alphaCount = totalHari - hadirCount - izinCount - sakitCount;
+      const persentase = totalHari > 0 ? (hadirCount / totalHari) * 100 : 0;
+
+      baseInfo["📊 TOTAL HARI"] = totalHari;
+      baseInfo["✅ HADIR"] = hadirCount;
+      baseInfo["📝 IZIN"] = izinCount;
+      baseInfo["🏥 SAKIT"] = sakitCount;
+      baseInfo["❌ ALPHA"] = alphaCount;
+      baseInfo["📈 PERSENTASE"] = `${persentase.toFixed(1)}%`;
+
+      // Status berdasarkan persentase dengan emoji
+      let statusKehadiran = "";
+      if (persentase >= 90) statusKehadiran = "🟢 EXCELLENT";
+      else if (persentase >= 80) statusKehadiran = "🔵 GOOD";
+      else if (persentase >= 70) statusKehadiran = "🟡 FAIR";
+      else statusKehadiran = "🔴 NEEDS IMPROVEMENT";
+
+      baseInfo["🎯 STATUS"] = statusKehadiran;
+
+      return baseInfo;
+    });
+
+    const fileName = asalInstansi
+      ? `📋 REKAP KEHADIRAN HARIAN - ${asalInstansi.toUpperCase()}`
+      : `📋 REKAP KEHADIRAN HARIAN - SEMUA PESERTA MAGANG`;
+
+    return generateExcel(data, fileName);
+  }
+
+  // Update fungsi requestIzin di kehadiran.service.ts
 }
 
 export default new kehadiranService();

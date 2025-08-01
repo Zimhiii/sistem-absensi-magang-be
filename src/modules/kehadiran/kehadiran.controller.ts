@@ -54,36 +54,7 @@ class KehadiranController {
     }
   }
 
-  async requestIzin(req: AuthenticatedRequest, res: Response) {
-    try {
-      const userId = req.user?.id;
-      const { alasan, tanggal, jenis } = req.body; // jenis: 'IZIN' atau 'SAKIT'
-      const result = await kehadiranService.requestIzin(
-        userId!,
-        alasan,
-        tanggal,
-        jenis
-      );
-      res.status(201).json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  }
-
-  async validateIzin(req: AuthenticatedRequest, res: Response) {
-    try {
-      const validatorId = req.user?.id;
-      const { izinId, status } = req.body; // status: 'APPROVED' atau 'REJECTED'
-      const result = await kehadiranService.validateIzin(
-        validatorId!,
-        izinId,
-        status
-      );
-      res.status(200).json(result);
-    } catch (error: any) {
-      res.status(400).json({ error: error.message });
-    }
-  }
+  //
 
   async exportAttendance(req: AuthenticatedRequest, res: Response) {
     try {
@@ -105,6 +76,211 @@ class KehadiranController {
       );
 
       res.status(200).send(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+  async requestIzin(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const { alasan, tanggal, jenis } = req.body;
+
+      if (!alasan || !tanggal || !jenis) {
+        return res.status(400).json({
+          error: "Alasan, tanggal, dan jenis izin harus diisi",
+        });
+      }
+
+      if (!["IZIN", "SAKIT"].includes(jenis)) {
+        return res.status(400).json({
+          error: "Jenis izin harus IZIN atau SAKIT",
+        });
+      }
+
+      const result = await kehadiranService.requestIzin(
+        userId!,
+        alasan,
+        tanggal,
+        jenis
+      );
+
+      res.status(201).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Validasi izin
+  async validateIzin(req: AuthenticatedRequest, res: Response) {
+    try {
+      const validatorId = req.user?.id;
+      const { izinId, status, catatan } = req.body;
+
+      if (!izinId || !status) {
+        return res.status(400).json({
+          error: "ID izin dan status validasi harus diisi",
+        });
+      }
+
+      if (!["APPROVED", "REJECTED"].includes(status)) {
+        return res.status(400).json({
+          error: "Status harus APPROVED atau REJECTED",
+        });
+      }
+
+      const result = await kehadiranService.validateIzin(
+        validatorId!,
+        izinId,
+        status,
+        catatan
+      );
+
+      res.json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Riwayat izin untuk peserta magang
+  async getMyIzinHistory(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const result = await kehadiranService.getMyIzinHistory(userId!);
+      res.json({ data: result });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Izin pending untuk pembimbing
+  async getPendingIzin(req: AuthenticatedRequest, res: Response) {
+    try {
+      const pembimbingId = req.user?.id;
+      const result = await kehadiranService.getPendingIzinByPembimbing(
+        pembimbingId!
+      );
+      res.json({ data: result });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Riwayat izin untuk pembimbing
+  async getAllIzinHistory(req: AuthenticatedRequest, res: Response) {
+    try {
+      const pembimbingId = req.user?.id;
+      const result = await kehadiranService.getAllIzinHistoryByPembimbing(
+        pembimbingId!
+      );
+      res.json({ data: result });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Semua izin untuk admin
+  async getAllIzinForAdmin(req: AuthenticatedRequest, res: Response) {
+    try {
+      const result = await kehadiranService.getAllIzinForAdmin();
+      res.json({ data: result });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Export attendance semua peserta berdasarkan instansi (tanpa filter tanggal)
+  async exportAllAttendanceByInstansi(
+    req: AuthenticatedRequest,
+    res: Response
+  ) {
+    try {
+      const { asalInstansi } = req.query;
+
+      const result = await kehadiranService.exportAllAttendanceByInstansi(
+        asalInstansi as string | undefined
+      );
+
+      // Generate nama file yang bagus dengan timestamp
+      const timestamp = new Date().toISOString().split("T")[0];
+      const fileName = asalInstansi
+        ? `📊 LAPORAN KEHADIRAN - ${asalInstansi
+            .toString()
+            .toUpperCase()} - ${timestamp}.xlsx`
+        : `📊 LAPORAN KEHADIRAN - SEMUA INSTANSI - ${timestamp}.xlsx`;
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${fileName}"`
+      );
+      res.send(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Export summary attendance berdasarkan instansi (tanpa filter tanggal)
+  async exportSummaryByInstansi(req: AuthenticatedRequest, res: Response) {
+    try {
+      const result = await kehadiranService.exportSummaryByInstansi();
+
+      // Generate nama file yang bagus dengan timestamp
+      const timestamp = new Date().toISOString().split("T")[0];
+      const fileName = `📈 RINGKASAN KEHADIRAN PER INSTANSI - ${timestamp}.xlsx`;
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${fileName}"`
+      );
+      res.send(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Get daftar instansi untuk filter
+  async getDaftarInstansi(req: AuthenticatedRequest, res: Response) {
+    try {
+      const result = await kehadiranService.getDaftarInstansi();
+      res.json({ data: result });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  // Export rekap kehadiran semua peserta dalam format kolom per hari
+  async exportRekapKehadiranAll(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { asalInstansi } = req.query;
+
+      const result = await kehadiranService.exportRekapKehadiranAll(
+        asalInstansi as string | undefined
+      );
+
+      // Generate nama file yang bagus dengan timestamp
+      const timestamp = new Date().toISOString().split("T")[0];
+      const fileName = asalInstansi
+        ? `📋 REKAP KEHADIRAN HARIAN - ${asalInstansi
+            .toString()
+            .toUpperCase()} - ${timestamp}.xlsx`
+        : `📋 REKAP KEHADIRAN HARIAN - SEMUA PESERTA MAGANG - ${timestamp}.xlsx`;
+
+      res.setHeader(
+        "Content-Type",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+      );
+      res.setHeader(
+        "Content-Disposition",
+        `attachment; filename="${fileName}"`
+      );
+      res.send(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });
     }

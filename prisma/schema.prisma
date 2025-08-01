@@ -17,6 +17,12 @@ enum Role {
   PESERTA_MAGANG
 }
 
+enum validasiStatus {
+  APPROVED
+  REJECTED
+  PENDING
+}
+
 enum StatusKehadiran {
   HADIR
   IZIN
@@ -103,6 +109,9 @@ model Kehadiran {
   waktuPulang     DateTime?
   qrCodeMasuk     String?
   qrCodePulang    String?
+  alasan          String? // Alasan jika izin/sakit
+  validasiStatus  validasiStatus? // Status validasi oleh satpam/pembimbing
+  validasiAt      DateTime? // Waktu validasi oleh satpam/pembimbing
   validatedBy     String? // ID admin/pembimbing/satpam yang memvalidasi
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt

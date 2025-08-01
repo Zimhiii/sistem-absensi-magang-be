@@ -247,30 +247,42 @@ class AuthService {
       message: "Email reset password telah dikirim. Silakan cek email Anda",
     };
   }
-
-  async resetPassword(accessToken: string, newPassword: string) {
+  async resetPassword(
+    accessToken: string,
+    refreshToken: string,
+    newPassword: string
+  ) {
     try {
-      // 1. Set session dengan access token
+      console.log("Access Token:", accessToken);
+      console.log("Refresh Token:", refreshToken);
+
+      // Set session dengan access token dan refresh token
       const { data: sessionData, error: sessionError } =
         await supabase.auth.setSession({
           access_token: accessToken,
-          refresh_token: "", // Tidak diperlukan untuk reset password
+          refresh_token: refreshToken,
         });
 
-      if (sessionError) {
-        console.error("Session error:", sessionError);
+      console.log("Session Data:", sessionData);
+      console.log("Session Error:", sessionError);
+
+      if (sessionError || !sessionData.session) {
         throw new Error(
           "Token reset password tidak valid atau sudah kadaluarsa"
         );
       }
 
-      // 2. Update password di Supabase
-      const { data, error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
+      // Update password di Supabase
+      const { data: updateData, error: updateError } =
+        await supabase.auth.updateUser({
+          password: newPassword,
+        });
 
-      if (error) {
-        console.error("Supabase update password error:", error);
+      console.log("Update Password Data:", updateData);
+      console.log("Update Password Error:", updateError);
+
+      if (updateError) {
+        console.error("Supabase update password error:", updateError);
         throw new Error("Gagal mengubah password");
       }
 
@@ -279,11 +291,8 @@ class AuthService {
       };
     } catch (error: any) {
       console.error("Reset password error:", error);
-      throw new Error("Gagal mengubah password");
+      throw new Error("Token reset password tidak valid atau sudah kadaluarsa");
     }
   }
-
-  // ...existing code...
 }
-
 export default new AuthService();

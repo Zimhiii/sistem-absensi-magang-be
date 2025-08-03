@@ -88,11 +88,10 @@ class UserService {
   }
 
   async getAllusers(role?: string) {
-    const where = role
-      ? { role: role as "ADMIN" | "PEMBIMBING" | "SATPAM" | "PESERTA_MAGANG" }
-      : {};
+    // const where = role
+    //   ? { role: role as "ADMIN" | "PEMBIMBING" | "SATPAM" | "PESERTA_MAGANG" }
+    //   : {};
     const users = await prisma.user.findMany({
-      where,
       select: {
         id: true,
         nama: true,

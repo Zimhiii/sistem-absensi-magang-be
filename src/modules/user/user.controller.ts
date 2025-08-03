@@ -8,8 +8,11 @@ interface AuthenticatedRequest extends Request {
 class UserController {
   async getProfile(req: AuthenticatedRequest, res: Response) {
     try {
-      const userId = req.user?.id;
-      const result = await userService.getProfile(userId!);
+      let id = req.body.id;
+      if (!id) {
+        id = req.user?.id;
+      }
+      const result = await userService.getProfile(id!);
       res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

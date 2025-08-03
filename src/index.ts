@@ -58,6 +58,12 @@ app.get(
   authorize(["ADMIN"]),
   userController.getAllUsers
 );
+app.get(
+  "/users/one/:id?",
+  authenticate,
+  authorize(["ADMIN"]),
+  userController.getUserById
+);
 app.post(
   "/users",
   authenticate,

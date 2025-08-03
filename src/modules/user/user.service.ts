@@ -53,6 +53,16 @@ class UserService {
     };
   }
 
+  getUserById = async (id: string) => {
+    const user = await prisma.user.findUnique({
+      where: {
+        id: id,
+      },
+    });
+    if (!user) throw new Error("User tidak ditemukan");
+    return user;
+  };
+
   async updateProfilePicture(userId: string, file: Express.Multer.File) {
     console.log("Updating profile picture for user:", userId);
     console.log("File details:", file);

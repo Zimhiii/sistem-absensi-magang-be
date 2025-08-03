@@ -18,11 +18,12 @@ import { errorHandler } from "./middleware/errorHandler.js";
 // Create a new express application instance
 const upload = multer({ storage: multer.memoryStorage() });
 const app = express();
-
 app.use(cors());
+
 app.use(morgan("dev"));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.json());
+// app.use(bodyParser.json());
+// app.use(bodyParser.urlencoded({ extended: true }));
 
 // Set the network port
 const port = process.env.PORT || 3000;

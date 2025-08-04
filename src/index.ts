@@ -51,6 +51,22 @@ app.post(
   userController.updateProfilePicture
 );
 
+// index.ts - Tambahkan route ini setelah route kehadiran lainnya
+// Get daftar instansi untuk peserta magang
+app.get(
+  "/users/instansi",
+  authenticate,
+  authorize(["ADMIN"]),
+  userController.getDaftarInstansiForPeserta
+);
+
+app.get(
+  "/users/hadir-hari-ini",
+  authenticate,
+  authorize(["ADMIN"]),
+  userController.getTodayAttendance
+);
+
 // Admin only routes
 app.get(
   "/users",
@@ -59,7 +75,7 @@ app.get(
   userController.getAllUsers
 );
 app.get(
-  "/users/one/:id?",
+  "/users/one/:id",
   authenticate,
   authorize(["ADMIN"]),
   userController.getUserById
@@ -70,6 +86,7 @@ app.post(
   authorize(["ADMIN"]),
   userController.createUser
 );
+
 app.put(
   "/users/:id",
   authenticate,
@@ -202,7 +219,6 @@ app.get(
   authorize(["ADMIN", "PEMBIMBING"]),
   kehadiranController.exportRekapKehadiranAll
 );
-
 //QR Code Routes
 app.post(
   "/qrcode/generate",

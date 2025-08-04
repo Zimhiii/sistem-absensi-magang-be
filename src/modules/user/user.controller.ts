@@ -30,6 +30,30 @@ class UserController {
     }
   }
 
+  // user.controller.ts - Tambahkan method ini
+  async getDaftarInstansiForPeserta(req: AuthenticatedRequest, res: Response) {
+    try {
+      const instansiList = await userService.getDaftarInstansiForPeserta();
+      console.log("Daftar Instansi:", instansiList);
+      res.json({
+        message: "Daftar instansi berhasil diambil",
+        data: instansiList,
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  async getTodayAttendance(req: AuthenticatedRequest, res: Response) {
+    try {
+      const response = await userService.getTodatyAttendance();
+      console.log("Get Today Attendance Response:", response);
+      res.status(200).json(response);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
   async updateProfilePicture(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
@@ -38,6 +62,16 @@ class UserController {
       console.log("File:", file);
       if (!file) throw new Error("File tidak ditemukan");
       const result = await userService.updateProfilePicture(userId!, file);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async getUserById(req: Request, res: Response) {
+    try {
+      const userId = req.params.id;
+      const result = await userService.getUserById(userId);
       res.status(200).json(result);
     } catch (error: any) {
       res.status(400).json({ error: error.message });

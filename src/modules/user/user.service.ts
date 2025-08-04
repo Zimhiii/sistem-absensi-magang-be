@@ -52,6 +52,65 @@ class UserService {
       asalInstansi: user.asalInstansi,
     };
   }
+  // user.service.ts - Tambahkan method ini
+  async getDaftarInstansiForPeserta() {
+    try {
+      // Ambil semua instansi unik dari tabel User
+      const instansiList = await prisma.user.findMany({
+        where: {
+          asalInstansi: {
+            not: null,
+          },
+          role: "PESERTA_MAGANG", // Hanya dari peserta magang
+        },
+        select: {
+          asalInstansi: true,
+        },
+        distinct: ["asalInstansi"],
+      });
+
+      console.log("Daftar instansi untuk peserta magang:", instansiList);
+
+      // Filter dan format data
+      const uniqueInstansi = instansiList
+        .map((user) => user.asalInstansi)
+        .filter((instansi) => instansi !== null && instansi.trim() !== "")
+        .sort();
+
+      return uniqueInstansi.map((instansi) => ({
+        value: instansi,
+        label: instansi,
+      }));
+    } catch (error) {
+      console.error("Error getting instansi list for peserta:", error);
+      throw new Error("Gagal mengambil daftar instansi");
+    }
+  }
+
+  async getTodatyAttendance() {
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    const attendance = await prisma.kehadiran.findMany({
+      where: {
+        status: "HADIR",
+        createdAt: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+      },
+      include: {
+        pesertaMagang: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    });
+
+    return attendance;
+  }
 
   getUserById = async (id: string) => {
     const user = await prisma.user.findUnique({

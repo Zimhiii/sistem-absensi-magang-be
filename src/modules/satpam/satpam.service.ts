@@ -1,39 +1,82 @@
 class SatpamService {
-  async getPermissions(satpamId: string) {
-    const satpam = await prisma.satpam.findUnique({
-      where: { userId: satpamId },
+  // async getPermissions(satpamId: string) {
+  //   const satpam = await prisma.satpam.findUnique({
+  //     where: { userId: satpamId },
+  //     include: {
+  //       izinSatpam: {
+  //         include: {
+  //           pembimbing: {
+  //             include: {
+  //               user: {
+  //                 select: {
+  //                   id: true,
+  //                   nama: true,
+  //                 },
+  //               },
+  //             },
+  //           },
+  //           pesertaMagang: {
+  //             include: {
+  //               user: {
+  //                 select: {
+  //                   id: true,
+  //                   nama: true,
+  //                   fotoProfil: true,
+  //                 },
+  //               },
+  //             },
+  //           },
+  //         },
+  //       },
+  //     },
+  //   });
+
+  //   if (!satpam) throw new Error("Satpam tidak ditemukan");
+
+  //   return satpam.izinSatpam;
+  // }
+
+  // Ganti method getPermissions
+  async getAccessibleStudents() {
+    const semuaPeserta = await prisma.pesertaMagang.findMany({
       include: {
-        izinSatpam: {
+        user: {
+          select: {
+            id: true,
+            nama: true,
+            fotoProfil: true,
+          },
+        },
+        pembimbing: {
           include: {
-            pembimbing: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    nama: true,
-                  },
-                },
-              },
-            },
-            pesertaMagang: {
-              include: {
-                user: {
-                  select: {
-                    id: true,
-                    nama: true,
-                    fotoProfil: true,
-                  },
-                },
+            user: {
+              select: {
+                nama: true,
               },
             },
           },
         },
+        izinSatpam: true,
       },
     });
 
-    if (!satpam) throw new Error("Satpam tidak ditemukan");
+    return semuaPeserta.map((peserta) => {
+      const bisaDiscan =
+        !peserta.pembimbing || peserta.izinSatpam?.[0]?.diizinkan;
 
-    return satpam.izinSatpam;
+      return {
+        id: peserta.id,
+        nama: peserta.user.nama,
+        fotoProfil: peserta.user.fotoProfil,
+        pembimbing: peserta.pembimbing?.user.nama || null,
+        bisaDiscan,
+        alasan: bisaDiscan
+          ? peserta.pembimbing
+            ? "Diizinkan oleh pembimbing"
+            : "Tidak punya pembimbing"
+          : `Belum diizinkan oleh ${peserta.pembimbing?.user.nama}`,
+      };
+    });
   }
 }
 

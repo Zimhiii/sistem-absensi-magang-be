@@ -33,27 +33,27 @@ class QRCodeService {
       throw new Error("Waktu kadaluarsa harus berupa angka positif");
     }
 
-    if (user.role === "SATPAM" && pesertaMagangId) {
-      const satpam = await prisma.satpam.findUnique({
-        where: { userId: user.id },
-      });
+    // if (user.role === "SATPAM" && pesertaMagangId) {
+    //   const satpam = await prisma.satpam.findUnique({
+    //     where: { userId: user.id },
+    //   });
 
-      if (!satpam) throw new Error("Data satpam tidak ditemukan");
+    //   if (!satpam) throw new Error("Data satpam tidak ditemukan");
 
-      const hasPermission = await prisma.izinSatpam.findFirst({
-        where: {
-          satpamId: satpam.id,
-          pesertaMagangId,
-          diizinkan: true,
-        },
-      });
+    //   const hasPermission = await prisma.izinSatpam.findFirst({
+    //     where: {
+    //       satpamId: satpam.id,
+    //       pesertaMagangId,
+    //       diizinkan: true,
+    //     },
+    //   });
 
-      if (!hasPermission) {
-        throw new Error(
-          "Anda tidak memiliki izin dari pembimbing untuk membuat QR code untuk peserta magang ini"
-        );
-      }
-    }
+    //   if (!hasPermission) {
+    //     throw new Error(
+    //       "Anda tidak memiliki izin dari pembimbing untuk membuat QR code untuk peserta magang ini"
+    //     );
+    //   }
+    // }
 
     const code = `TELKOM-${Date.now()}-${Math.random()
       .toString(36)

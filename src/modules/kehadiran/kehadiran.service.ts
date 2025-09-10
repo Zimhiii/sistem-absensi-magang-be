@@ -146,17 +146,35 @@ class kehadiranService {
     }
 
     if (scanner.role === "SATPAM" && scanner.satpam) {
-      const hasPermission = await prisma.izinSatpam.findFirst({
-        where: {
-          satpamId: scanner.satpam.id,
-          pesertaMagangId: pesertaMagang.id,
-          diizinkan: true,
-        },
-      });
+      // const hasPermission = await prisma.izinSatpam.findFirst({
+      //   where: {
+      //     satpamId: scanner.satpam.id,
+      //     pesertaMagangId: pesertaMagang.id,
+      //     diizinkan: true,
+      //   },
+      // });
 
-      if (!hasPermission) {
+      // if (!hasPermission) {
+      //   throw new Error(
+      //     "Satpam tidak memiliki izin untuk memindai peserta magang ini"
+      //   );
+      // }
+
+      // VALIDASI: Cek apakah boleh scan
+      const bolehScan = await this.validateSatpamAccess(pesertaMagang.id);
+
+      const pembimbingPesertaMagang = pesertaMagang.pembimbingId
+        ? await prisma.pembimbing.findUnique({
+            where: { id: pesertaMagang.pembimbingId },
+            include: { user: true },
+          })
+        : null;
+
+      if (!bolehScan) {
         throw new Error(
-          "Satpam tidak memiliki izin untuk memindai peserta magang ini"
+          `Tidak diizinkan menscan peserta ini. ` +
+            `Peserta sudah memiliki pembimbing (${pembimbingPesertaMagang?.user.nama}). ` +
+            `Silakan minta pembimbing mengaktifkan izin satpam.`
         );
       }
     }
@@ -1332,6 +1350,30 @@ class kehadiranService {
       : `📋 REKAP KEHADIRAN HARIAN - SEMUA PESERTA MAGANG`;
 
     return generateExcel(data, fileName);
+  }
+
+  // Ganti fungsi validasi
+  private async validateSatpamAccess(
+    pesertaMagangId: string
+  ): Promise<boolean> {
+    const pesertaMagang = await prisma.pesertaMagang.findUnique({
+      where: { id: pesertaMagangId },
+      include: {
+        pembimbing: true,
+        izinSatpam: true,
+      },
+    });
+
+    if (!pesertaMagang) throw new Error("Peserta magang tidak ditemukan");
+
+    // Case 1: Tidak punya pembimbing → BOLEH scan
+    if (!pesertaMagang.pembimbing) return true;
+
+    // Case 2: Punya pembimbing dan ada izin global → BOLEH scan
+    if (pesertaMagang.izinSatpam?.[0]?.diizinkan) return true;
+
+    // Case 3: Punya pembimbing tapi tidak diizinkan → DITOLAK
+    return false;
   }
 
   // Update fungsi requestIzin di kehadiran.service.ts

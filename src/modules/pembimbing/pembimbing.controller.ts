@@ -55,15 +55,48 @@ class PembimbingController {
     }
   }
 
-  async grantSatpamPermission(req: AuthenticatedRequest, res: Response) {
+  // async grantSatpamPermission(req: AuthenticatedRequest, res: Response) {
+  //   try {
+  //     const pembimbingId = req.user?.id;
+  //     const { satpamId, pesertaMagangId, grant } = req.body;
+  //     const result = await pembimbingService.grantSatpamPermission(
+  //       pembimbingId!,
+  //       satpamId,
+  //       pesertaMagangId,
+  //       grant
+  //     );
+  //     res.status(200).json(result);
+  //   } catch (error: any) {
+  //     res.status(400).json({ error: error.message });
+  //   }
+  // }
+
+  // Tambahkan endpoint baru
+  async toggleGlobalPermission(req: AuthenticatedRequest, res: Response) {
     try {
       const pembimbingId = req.user?.id;
-      const { satpamId, pesertaMagangId, grant } = req.body;
-      const result = await pembimbingService.grantSatpamPermission(
+      const { pesertaMagangId, grant } = req.body;
+
+      const result = await pembimbingService.toggleGlobalPermission(
         pembimbingId!,
-        satpamId,
         pesertaMagangId,
         grant
+      );
+
+      res.status(200).json({
+        message: `Izin satpam ${grant ? "diaktifkan" : "dinonaktifkan"}`,
+        data: result,
+      });
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
+  async getGlobalPermissions(req: AuthenticatedRequest, res: Response) {
+    try {
+      const pembimbingId = req.user?.id;
+      const result = await pembimbingService.getGlobalPermissions(
+        pembimbingId!
       );
       res.status(200).json(result);
     } catch (error: any) {

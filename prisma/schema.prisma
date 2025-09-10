@@ -84,20 +84,33 @@ model Satpam {
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt
 
-  izinSatpam      IzinSatpam[]
+  // izinSatpam      IzinSatpam[]
 }
 
+// model IzinSatpam {
+//   id              String      @id @default(uuid())
+//   pembimbingId    String
+//   pembimbing      Pembimbing  @relation(fields: [pembimbingId], references: [id])
+//   satpamId        String
+//   satpam          Satpam      @relation(fields: [satpamId], references: [id])
+//   pesertaMagangId String
+//   pesertaMagang   PesertaMagang @relation(fields: [pesertaMagangId], references: [id])
+//   diizinkan       Boolean     @default(false)
+//   createdAt       DateTime    @default(now())
+//   updatedAt       DateTime    @updatedAt
+// }
+
 model IzinSatpam {
-  id              String      @id @default(uuid())
+  id              String   @id @default(uuid())
   pembimbingId    String
-  pembimbing      Pembimbing  @relation(fields: [pembimbingId], references: [id])
-  satpamId        String
-  satpam          Satpam      @relation(fields: [satpamId], references: [id])
+  pembimbing      Pembimbing @relation(fields: [pembimbingId], references: [id])
   pesertaMagangId String
   pesertaMagang   PesertaMagang @relation(fields: [pesertaMagangId], references: [id])
-  diizinkan       Boolean     @default(false)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  diizinkan       Boolean  @default(false)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([pembimbingId, pesertaMagangId])
 }
 
 model Kehadiran {

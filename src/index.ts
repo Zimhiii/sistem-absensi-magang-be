@@ -267,19 +267,42 @@ app.post(
   authorize(["PEMBIMBING"]),
   pembimbingController.verifiyStudent
 );
-app.post(
-  "/pembimbing/grant-permission",
-  authenticate,
-  authorize(["PEMBIMBING"]),
-  pembimbingController.grantSatpamPermission
-);
+// app.post(
+//   "/pembimbing/grant-permission",
+//   authenticate,
+//   authorize(["PEMBIMBING"]),
+//   pembimbingController.grantSatpamPermission
+// );
 
 //Satpam Routes
+// app.get(
+//   "/satpam/permissions",
+//   authenticate,
+//   authorize(["SATPAM"]),
+//   satpamController.getPermissions
+// );
+
+// Tambahkan routes baru untuk pembimbing
+app.post(
+  "/pembimbing/global-permission",
+  authenticate,
+  authorize(["PEMBIMBING"]),
+  pembimbingController.toggleGlobalPermission
+);
+
 app.get(
-  "/satpam/permissions",
+  "/pembimbing/global-permissions",
+  authenticate,
+  authorize(["PEMBIMBING"]),
+  pembimbingController.getGlobalPermissions
+);
+
+// Update route satpam
+app.get(
+  "/satpam/accessible-students",
   authenticate,
   authorize(["SATPAM"]),
-  satpamController.getPermissions
+  satpamController.getAccessibleStudents
 );
 
 app.use(errorHandler);

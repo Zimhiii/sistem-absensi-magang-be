@@ -16,6 +16,27 @@ class kehadiranService {
       `Recording attendance for user ${userId} with QR code ${qrCode} and type ${type}`
     );
     const now = new Date();
+
+    const qrCodeRecord = await prisma.qRCode.findUnique({
+      where: { code: qrCode },
+    });
+    console.log("QR Code Record:", qrCodeRecord);
+
+    if (qrCodeRecord?.creatorRole === "SATPAM") {
+      const izinSatpam = await prisma.izinSatpam.findFirst({
+        where: {
+          pesertaMagangId: userId,
+          diizinkan: true,
+        },
+      });
+      console.log("Izin Satpam Record:", izinSatpam);
+      console.log("izinSatpam", izinSatpam);
+      if (!izinSatpam) {
+        throw new Error(
+          "QR code ini hanya dapat digunakan oleh peserta yang sudah mendapatkan izin dari pembimbing untuk scan di satpam"
+        );
+      }
+    }
     // const today = new Date(
     //   now.toLocaleString("en-US", { timeZone: "Asia/Jakarta" })
     // );
@@ -162,6 +183,15 @@ class kehadiranService {
 
       // VALIDASI: Cek apakah boleh scan
       const bolehScan = await this.validateSatpamAccess(pesertaMagang.id);
+      console.log("bolehScan", bolehScan);
+
+      const diizinkan = await prisma.izinSatpam.findFirst({
+        where: {
+          pesertaMagangId: pesertaMagang.id,
+          diizinkan: true,
+        },
+      });
+      console.log("diizinkan", diizinkan);
 
       const pembimbingPesertaMagang = pesertaMagang.pembimbingId
         ? await prisma.pembimbing.findUnique({

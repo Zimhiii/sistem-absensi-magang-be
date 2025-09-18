@@ -1406,6 +1406,23 @@ class kehadiranService {
     return false;
   }
 
+  async getAllMyHistoryAttendance(userId: string) {
+    const history = await prisma.kehadiran.findMany({
+      where: {
+        pesertaMagangId: userId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    if (!history || history.length === 0) {
+      throw new Error("Belum ada riwayat kehadiran");
+    }
+
+    return history;
+  }
+
   // Update fungsi requestIzin di kehadiran.service.ts
 }
 

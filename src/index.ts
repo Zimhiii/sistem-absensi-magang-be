@@ -169,6 +169,12 @@ app.get(
   kehadiranController.getAttendanceHistory
 );
 
+app.get(
+  "/kehadiran/history/all",
+  authenticate,
+  kehadiranController.getAllMyHistory
+);
+
 app.post(
   "/kehadiran/izin",
   authenticate,

@@ -286,6 +286,16 @@ class KehadiranController {
       res.status(400).json({ error: error.message });
     }
   }
+
+  async getAllMyHistory(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const result = await kehadiranService.getAllMyHistoryAttendance(userId!);
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
 }
 
 export default new KehadiranController();

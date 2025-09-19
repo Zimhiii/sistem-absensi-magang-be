@@ -1409,20 +1409,19 @@ class kehadiranService {
   async getAllMyHistoryAttendance(userId: string) {
     const history = await prisma.kehadiran.findMany({
       where: {
-        pesertaMagangId: userId,
-      },
-      orderBy: {
-        createdAt: "desc",
+        pesertaMagang: {
+          userId: userId,
+        },
       },
     });
 
-    if (!history || history.length === 0) {
+    console.log("History:", history);
+    if (!history) {
       throw new Error("Belum ada riwayat kehadiran");
     }
 
     return history;
   }
-
   // Update fungsi requestIzin di kehadiran.service.ts
 }
 

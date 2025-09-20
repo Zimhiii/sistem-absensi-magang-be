@@ -26,7 +26,7 @@ class PembimbingService {
 
     return await prisma.pesertaMagang.update({
       where: { id: user.pesertaMagang.id },
-      data: { pembimbingId },
+      data: { pembimbingId, validasiStatusPembimbing: "PENDING" },
     });
   }
   async getMyStudents(pembimbingId: string) {
@@ -90,10 +90,17 @@ class PembimbingService {
         where: { id: pesertaMagangId },
         data: {
           pembimbingId: pembimbing.id,
+          validasiStatusPembimbing: "APPROVED",
         },
       });
     } else {
-      return { message: "Verifikasi peserta magang ditolak" };
+      return prisma.pesertaMagang.update({
+        where: { id: pesertaMagangId },
+        data: {
+          pembimbingId: pembimbing.id,
+          validasiStatusPembimbing: "REJECTED",
+        },
+      });
     }
   }
 

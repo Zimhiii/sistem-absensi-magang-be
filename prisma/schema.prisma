@@ -59,6 +59,8 @@ model PesertaMagang {
   user            User        @relation(fields: [userId], references: [id])
   pembimbingId    String?
   pembimbing      Pembimbing? @relation(fields: [pembimbingId], references: [id])
+  validasiStatusPembimbing  validasiStatus? // Status validasi oleh satpam/pembimbing
+  validasiStatusPembimbingAt      DateTime? 
   qrCode          String      @unique
   createdAt       DateTime    @default(now())
   updatedAt       DateTime    @updatedAt

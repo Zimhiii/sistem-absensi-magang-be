@@ -175,6 +175,13 @@ app.get(
   kehadiranController.getAllMyHistory
 );
 
+app.get(
+  "/kehadiran/history/my-students",
+  authenticate,
+  authorize(["PEMBIMBING"]),
+  kehadiranController.getMyStudentAttendance
+);
+
 app.post(
   "/kehadiran/izin",
   authenticate,

@@ -1433,6 +1433,13 @@ class kehadiranService {
             },
           },
         },
+        include: {
+          pesertaMagang: {
+            include: {
+              user: true,
+            },
+          },
+        },
       });
       return history;
     } catch (error) {

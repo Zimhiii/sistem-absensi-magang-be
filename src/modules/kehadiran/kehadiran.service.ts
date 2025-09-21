@@ -1459,6 +1459,7 @@ class kehadiranService {
           },
         },
       });
+      console.log("All History:", history);
       return history;
     } catch (error) {
       console.error("Error fetching all attendance history:", error);

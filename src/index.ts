@@ -183,7 +183,7 @@ app.get(
 );
 
 app.get(
-  "/kehadiran/history/all",
+  "/kehadiran/history/all-students",
   authenticate,
   authorize(["ADMIN"]),
   kehadiranController.getAllHistoryStudents

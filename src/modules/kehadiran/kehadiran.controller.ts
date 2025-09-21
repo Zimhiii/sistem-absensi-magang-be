@@ -310,6 +310,15 @@ class KehadiranController {
       res.status(400).json({ error: error.message });
     }
   };
+
+  getAllHistoryStudents = async (req: AuthenticatedRequest, res: Response) => {
+    try {
+      const result = await kehadiranService.AllHistoryAttendance();
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  };
 }
 
 export default new KehadiranController();

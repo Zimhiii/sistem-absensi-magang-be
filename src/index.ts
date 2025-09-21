@@ -182,6 +182,13 @@ app.get(
   kehadiranController.getMyStudentAttendance
 );
 
+app.get(
+  "/kehadiran/history/all",
+  authenticate,
+  authorize(["ADMIN"]),
+  kehadiranController.getAllHistoryStudents
+);
+
 app.post(
   "/kehadiran/izin",
   authenticate,

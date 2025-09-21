@@ -1447,6 +1447,24 @@ class kehadiranService {
       throw new Error("Failed to fetch student attendance history");
     }
   }
+
+  async AllHistoryAttendance() {
+    try {
+      const history = await prisma.kehadiran.findMany({
+        include: {
+          pesertaMagang: {
+            include: {
+              user: true,
+            },
+          },
+        },
+      });
+      return history;
+    } catch (error) {
+      console.error("Error fetching all attendance history:", error);
+      throw new Error("Failed to fetch all attendance history");
+    }
+  }
   // Update fungsi requestIzin di kehadiran.service.ts
 }
 

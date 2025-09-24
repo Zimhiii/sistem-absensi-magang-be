@@ -44,14 +44,14 @@ app.post("/auth/reset-password", authController.resetPassword);
 // User Routes
 app.get("/users/me", authenticate, userController.getProfile);
 app.put("/users/me", authenticate, userController.updateProfile);
-app.post(
+app.put(
   "/users/me/profile-picture",
   authenticate,
   upload.single("file"),
   userController.updateProfilePicture
 );
 
-app.post(
+app.put(
   "/users/me/profile-picture-url",
   authenticate,
   userController.updateProfilePictureURL

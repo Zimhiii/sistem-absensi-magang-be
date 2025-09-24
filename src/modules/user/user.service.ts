@@ -17,18 +17,7 @@ class UserService {
 
     if (!user) throw new Error("User tidak ditemukan");
 
-    return {
-      id: user.id,
-      nama: user.nama,
-      email: user.email,
-      role: user.role,
-      fotoProfil: user.fotoProfil,
-      nomorTelepon: user.nomorTelepon,
-      asalInstansi: user.asalInstansi,
-      pesertaMagang: user.pesertaMagang,
-      pembimbing: user.pembimbing,
-      satpam: user.satpam,
-    };
+    return user;
   }
   async updateProfile(userId: string, data: UpdateProfileInput) {
     const user = await prisma.user.update({

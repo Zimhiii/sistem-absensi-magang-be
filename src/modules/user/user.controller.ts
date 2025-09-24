@@ -33,11 +33,13 @@ class UserController {
   async updateProfilePictureURL(req: AuthenticatedRequest, res: Response) {
     try {
       const userId = req.user?.id;
-      const { fileUrl } = req.body;
-      if (!fileUrl) throw new Error("fileUrl harus diisi");
+      const { fotoProfil } = req.body;
+      console.log("File URL:", fotoProfil);
+      console.log("User ID:", userId);
+      if (!fotoProfil) throw new Error("fotoProfil harus diisi");
       const result = await userService.updateProfilePictureURL(
         userId!,
-        fileUrl
+        fotoProfil
       );
       res.status(200).json(result);
     } catch (error: any) {

@@ -225,6 +225,8 @@ class PembimbingService {
                 id: true,
                 nama: true,
                 email: true,
+                asalInstansi: true,
+                fotoProfil: true,
               },
             },
             izinSatpam: true,
@@ -239,6 +241,8 @@ class PembimbingService {
       id: peserta.id,
       nama: peserta.user.nama,
       email: peserta.user.email,
+      asalInstansi: peserta.user.asalInstansi,
+      fotoProfil: peserta.user.fotoProfil,
       izinAktif: peserta.izinSatpam?.[0]?.diizinkan || false,
     }));
   }

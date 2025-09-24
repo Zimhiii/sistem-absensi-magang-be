@@ -51,6 +51,12 @@ app.post(
   userController.updateProfilePicture
 );
 
+app.post(
+  "/users/me/profile-picture-url",
+  authenticate,
+  userController.updateProfilePictureURL
+);
+
 // index.ts - Tambahkan route ini setelah route kehadiran lainnya
 // Get daftar instansi untuk peserta magang
 app.get(

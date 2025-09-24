@@ -30,6 +30,21 @@ class UserController {
     }
   }
 
+  async updateProfilePictureURL(req: AuthenticatedRequest, res: Response) {
+    try {
+      const userId = req.user?.id;
+      const { fileUrl } = req.body;
+      if (!fileUrl) throw new Error("fileUrl harus diisi");
+      const result = await userService.updateProfilePictureURL(
+        userId!,
+        fileUrl
+      );
+      res.status(200).json(result);
+    } catch (error: any) {
+      res.status(400).json({ error: error.message });
+    }
+  }
+
   // user.controller.ts - Tambahkan method ini
   async getDaftarInstansiForPeserta(req: AuthenticatedRequest, res: Response) {
     try {

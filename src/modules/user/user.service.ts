@@ -255,6 +255,17 @@ class UserService {
     };
   }
 
+  async updateProfilePictureURL(userId: string, fileUrl: string) {
+    const user = await prisma.user.update({
+      where: { id: userId },
+      data: { fotoProfil: fileUrl },
+    });
+
+    console.log("Updated user profile picture:", user);
+    if (!user) throw new Error("User tidak ditemukan");
+    return user;
+  }
+
   async deleteUser(id: string) {
     const user = await prisma.user.findUnique({ where: { id: id } });
     const supabaseUser = await supabase.auth.admin.getUserById(id);

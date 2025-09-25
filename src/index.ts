@@ -191,7 +191,7 @@ app.get(
 app.get(
   "/kehadiran/history/all-students",
   authenticate,
-  authorize(["ADMIN"]),
+  authorize(["ADMIN", "SATPAM"]),
   kehadiranController.getAllHistoryStudents
 );
 
